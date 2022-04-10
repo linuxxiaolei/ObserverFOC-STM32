@@ -400,6 +400,11 @@
               <FilePath>..\Core\Src\FOCSub.c</FilePath>
             </File>
             <File>
+              <FileName>DataProcessing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\DataProcessing.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -413,11 +418,6 @@
               <FileName>stm32g4xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32g4xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>DataProcessing.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\DataProcessing.c</FilePath>
             </File>
           </Files>
         </Group>

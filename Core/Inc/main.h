@@ -47,10 +47,7 @@ typedef struct{
     float Out_temp;
 }PI_str;
 
-typedef struct{
-    uint8_t Spd_Tick;
-    float Theta_Pre;
-    
+typedef struct{    
     float Spd;
 
     float Id;
@@ -67,6 +64,7 @@ typedef struct{
     uint8_t Mode;
     
     float wc_Current;
+    float wc_Speed;
 }ControlCommand_str;
 
 typedef struct{
@@ -81,6 +79,7 @@ typedef struct{
 typedef struct{
     float Theta;
     float Spd;
+    float Theta_Pre;
 
     float Udc;
 
@@ -129,6 +128,15 @@ typedef struct{
     float Ey;
 
     float ThetaE;
+    
+    float Tx;
+    float Ty;
+    
+    float Ta;
+    float Tb; 
+    float Tc;
+    
+    float Udc_K;
 }MotorRealTimeInformation_str;
 
 typedef struct{
@@ -176,6 +184,7 @@ typedef struct{
 
 typedef struct{
     uint32_t Theta;
+    uint32_t Theta_Pre;
     uint16_t Ia;
     uint16_t Ic;
     uint16_t Udc;

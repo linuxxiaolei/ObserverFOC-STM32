@@ -60,6 +60,7 @@ uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc2;
 extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 extern MotorRealTimeInformation_str MRT_Inf;
@@ -71,6 +72,7 @@ extern PI_str D_PI;
 extern PI_str Q_PI;
 extern PI_str Spd_PI;
 extern ControlCommand_str CtrlCom;
+extern uint8_t UART2_Buffer[6];
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -250,7 +252,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
     static uint16_t MotorStatus = 0;
-    GPIOA->BSRR = (uint32_t)GPIO_PIN_5;
+    
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   //HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
@@ -258,7 +260,9 @@ void TIM1_UP_TIM16_IRQHandler(void)
     
     switch(MotorStatus){
     case 0:
-        if(SensorData.Theta_Ready == 1) MotorStatus = 1;
+        if(SensorData.Theta_Ready == 1){
+            MotorStatus = 1;
+        }
         break;
     case 1:
         if(SensorData.Udc_Ready == 1) MotorStatus = 2;
@@ -267,16 +271,18 @@ void TIM1_UP_TIM16_IRQHandler(void)
         if(SensorData.Ic_Ready == 1) MotorStatus = 3;
         break;
     case 3:
-        if(SensorData.Ia_Ready == 1) MotorStatus = 4;
+        if(SensorData.Ia_Ready == 1) {
+            MotorStatus = 4;
+            SensorData.Theta_Pre = SensorData.Theta;
+        }
         break;
     }
     
     switch(MotorStatus){
     case 4:
-        MRT_Inf.Theta = (PI * 2 * SensorData.Theta) / (1 << 17);
         MRT_Inf.Udc = (3.3f * SensorData.Udc)  / (1 << 12) * (470 + 15) / 15;
-        MRT_Inf.Ia = (1.65f - (3.3f * SensorData.Ia) / (1 << 12)) / 50 / 0.006f;
-        MRT_Inf.Ic = ((3.3f * SensorData.Ic) / (1 << 12) - 1.65f) / 50 / 0.006f;
+        MRT_Inf.Ia = (1.65f - ((3.3f * SensorData.Ia) / (1 << 12))) / 50 / 0.006f;
+        MRT_Inf.Ic = (((3.3f * SensorData.Ic) / (1 << 12)) - 1.65f) / 50 / 0.006f;
     
         MRT_Inf.ThetaE = GetThetaE(MRT_Inf.Theta, MotorParameter.Np);
         Cordic(MRT_Inf.ThetaE, &MRT_Inf.SinTheta, &MRT_Inf.CosTheta);
@@ -288,8 +294,8 @@ void TIM1_UP_TIM16_IRQHandler(void)
         
         InvPark(MRT_Inf.Ud, MRT_Inf.Uq, MRT_Inf.SinTheta, MRT_Inf.CosTheta, &MRT_Inf.Ux, &MRT_Inf.Uy);
         InvClarke(MRT_Inf.Ux, MRT_Inf.Uy, &MRT_Inf.U1, &MRT_Inf.U2, &MRT_Inf.U3);
-        MRT_Inf.Sector = GetSector(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3);
-        GetCCR(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, MRT_Inf.Sector, MRT_Inf.Udc, &MRT_Inf.CCRa, &MRT_Inf.CCRb, &MRT_Inf.CCRc);
+        GetSector(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, &MRT_Inf.Sector);
+        GetCCR(&MRT_Inf);
 
         TIM1->CCR1 = (uint32_t)(MRT_Inf.CCRa * Timer_PERIOD);
         TIM1->CCR2 = (uint32_t)(MRT_Inf.CCRb * Timer_PERIOD);
@@ -298,10 +304,30 @@ void TIM1_UP_TIM16_IRQHandler(void)
     }
     
     HAL_UART_Receive_IT(&huart2,Encoder_buffer, ENCODER_BUFFER_NUM);
+    
     USART2->TDR = 0x02;
     
-    GPIOA->BRR = (uint32_t)GPIO_PIN_5;
+    
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM2 global interrupt.
+  */
+void TIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM2_IRQn 0 */
+    GPIOA->BSRR = (uint32_t)GPIO_PIN_5;
+  /* USER CODE END TIM2_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim2);
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+    //TIM2->SR &= ~TIM_SR_UIF;
+    GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
+    
+    CtrlCom.Id = 0;
+    CtrlCom.Iq = PID_Control(&Spd_PI, CtrlCom.Spd, MRT_Inf.Spd);
+    GPIOA->BRR = (uint32_t)GPIO_PIN_5;
+  /* USER CODE END TIM2_IRQn 1 */
 }
 
 /**
@@ -310,7 +336,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-
+    
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
@@ -323,7 +349,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     uint8_t Encoder_CRC = Encoder_buffer[0] ^ Encoder_buffer[1] ^ Encoder_buffer[2] ^ Encoder_buffer[3] ^ Encoder_buffer[4];
     
     if((Encoder_CRC == Encoder_buffer[5]) && (Encoder_buffer[0] == 0x02)){
-        SensorData.Theta = ~((Encoder_buffer[2] << 0) | (Encoder_buffer[3] << 8) | (Encoder_buffer[4] << 16));
+        SensorData.Theta = (~((Encoder_buffer[2] << 0) | (Encoder_buffer[3] << 8) | (Encoder_buffer[4] << 16))) & 0x1FFFF;
+        MRT_Inf.Theta = (PI * 2 * SensorData.Theta) / (1 << 17);
         SensorData.Theta_Ready = 1;
     }
 }

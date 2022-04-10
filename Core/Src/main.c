@@ -40,7 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
+ ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
 DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_adc2;
@@ -48,6 +48,7 @@ DMA_HandleTypeDef hdma_adc2;
 CORDIC_HandleTypeDef hcordic;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 
@@ -57,6 +58,7 @@ MotorParameter_str MotorParameter = {0};
 SensorData_str SensorData = {0};
 uint32_t ADC1_Buffer = 0;
 uint32_t ADC2_Buffer = 0;
+uint8_t UART2_Buffer[6] = {0};
 PI_str D_PI  = {0};
 PI_str Q_PI  = {0};
 PI_str Spd_PI  = {0};
@@ -72,6 +74,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 static void MotorParameter_Init(void);
 /* USER CODE END PFP */
@@ -104,7 +107,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-__HAL_TIM_ENABLE_IT(&htim1, TIM_IT_TRIGGER);
+    
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -115,6 +118,7 @@ __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_TRIGGER);
   MX_DMA_Init();
   MX_ADC2_Init();
   MX_ADC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
@@ -127,9 +131,8 @@ __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_TRIGGER);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   
   HAL_GPIO_WritePin(SDabc_GPIO_Port, SDabc_Pin, GPIO_PIN_SET);
-  
   HAL_TIM_Base_Start_IT(&htim1);
-  
+  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -443,6 +446,51 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = Timer_PERIOD * 20;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -559,6 +607,7 @@ void MotorParameter_Init(void){
     CtrlCom.SpdFs = 2000;
     CtrlCom.CurTs = 1.0f / CtrlCom.CurFs;
     CtrlCom.SpdTs = 1.0f / CtrlCom.SpdFs;
+    
     CtrlCom.wc_Current = 2.0f * PI / 10 * CtrlCom.CurFs;
     
     Q_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
@@ -569,8 +618,13 @@ void MotorParameter_Init(void){
     D_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
     D_PI.Max = 0.5f;
     
-    CtrlCom.Id = 0.1f;
-    CtrlCom.Iq = 0.0f;
+    CtrlCom.wc_Speed = CtrlCom.wc_Current / 10;
+    
+    Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
+    Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
+    Spd_PI.Max = 0.5f;
+    
+    CtrlCom.Spd = -1;
 }
 /* USER CODE END 4 */
 
