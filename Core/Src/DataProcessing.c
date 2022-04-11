@@ -21,7 +21,7 @@ float PID_Control(PI_str* pPI, float Target, float Present){
     return PIout;
 }
 
-float PID_Control_Err(PI_str* pPI, float Error){
+float PI_Control_Err(PI_str* pPI, float Error){
     uint8_t ui_flag = !(((pPI->Out_temp > pPI->Max) || (pPI->Out_temp < -pPI->Max)) && (pPI->Out_temp * Error >= 0));
     
     pPI->up = pPI->Kp * Error;
@@ -126,7 +126,7 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
     if(SMO->EMF_Flag)
         SMO->de = -SMO->de;
 
-    float SpdE = PID_Control_Err(&(SMO->SpdE_PI), SMO->de);
+    float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
     LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, 250 * 2 * PI);
     
     float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
@@ -166,7 +166,7 @@ void SlidingModeObserver2(ControlCommand_str* CtrlCom, MotorParameter_str* Motor
         SMO->de = (-SMO->Ex * SMO->CosTheta - SMO->Ey * SMO->SinTheta) / (-SMO->Ex * SMO->SinTheta + SMO->Ey * SMO->CosTheta) *2;
     }
 
-    float SpdE = PID_Control_Err(&(SMO->SpdE_PI), SMO->de);
+    float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
     LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
 
     float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
@@ -209,7 +209,7 @@ void SlidingModeObserver3(ControlCommand_str* CtrlCom, MotorParameter_str* Motor
     if(SMO->EMF_Flag)
         SMO->de = -SMO->de;
 
-    float SpdE = PID_Control_Err(&(SMO->SpdE_PI), SMO->de);
+    float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
     LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
 
     float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;

@@ -5,6 +5,7 @@
 #include "FOCSub.h"
 
 extern float PID_Control(PI_str* pPI, float Target, float Present);
+extern float PI_Control_Err(PI_str* pPI, float Error);
 extern float ObsPID_Control(PI_str* pPI, float Target, float Present);
 extern float PIMAX_Control(PI_str* pPI, float Target, float Present, float MaxUp, float MaxDown);
 extern void LPF(float* Uo, float Ui, float Fs, float Fc);

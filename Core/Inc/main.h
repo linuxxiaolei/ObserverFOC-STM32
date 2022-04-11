@@ -33,6 +33,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include <math.h>
 #include <stdint.h>
+#include "arm_math.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -100,6 +101,7 @@ typedef struct{
     float CCRc;
 
     float Ia;
+    float Ib;
     float Ic;
 
     float Ix;       
@@ -136,7 +138,7 @@ typedef struct{
     float Tb; 
     float Tc;
     
-    float Udc_K;
+    float Uac;
 }MotorRealTimeInformation_str;
 
 typedef struct{
@@ -184,15 +186,24 @@ typedef struct{
 
 typedef struct{
     uint32_t Theta;
+    uint32_t ThetaE;
     uint32_t Theta_Pre;
-    uint16_t Ia;
-    uint16_t Ic;
+    int16_t Ia;
+    int16_t Ic;
     uint16_t Udc;
     uint8_t Udc_Ready;
     uint8_t Ia_Ready;
     uint8_t Ic_Ready;
     uint8_t Theta_Ready;
+    uint8_t ADC1_DMA_Ready;
+    uint8_t ADC2_DMA_Ready;
+    uint8_t Encoder_Ready;
 }SensorData_str;
+
+typedef union{
+	uint32_t DMAData;
+	uint16_t SensorData[2];
+}ADCData_union;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -231,7 +242,6 @@ void Error_Handler(void);
 #define PWM_phB_Init (uint32_t)(Timer_PERIOD / 2)
 #define PWM_phC_Init (uint32_t)(Timer_PERIOD / 2)
 
-#define PI 3.14159f
 #define TRUE 1
 #define FALSE 0
 /* USER CODE END Private defines */
