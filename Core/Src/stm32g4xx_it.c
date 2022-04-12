@@ -73,6 +73,7 @@ extern PI_str Q_PI;
 extern PI_str Spd_PI;
 extern ControlCommand_str CtrlCom;
 extern uint8_t UART2_Buffer[6];
+extern SlidingModeObserver_str SMO;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -308,6 +309,8 @@ void TIM1_UP_TIM16_IRQHandler(void)
     
         D_PI.Max = MRT_Inf.Uac;
         Q_PI.Max = MRT_Inf.Uac;
+        
+        // SlidingModeObserver3(&CtrlCom, &MotorParameter, &MRT_Inf, &SMO);
         
         Cordic(MRT_Inf.ThetaE, &MRT_Inf.SinTheta, &MRT_Inf.CosTheta);
         arm_clarke_f32(MRT_Inf.Ia, MRT_Inf.Ib, &MRT_Inf.Ix, &MRT_Inf.Iy);
