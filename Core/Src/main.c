@@ -53,16 +53,23 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+const MotorParameter_str MotorParameter = {.Np = 5,
+                                           .J = 0.0000033f,
+                                           .Rs = 0.75f,
+                                           .Ls = 0.00095f,
+                                           .Kt = 0.11f,
+                                           .Flux = 0.014667f};
+
 MotorRealTimeInformation_str MRT_Inf = {0};
-MotorParameter_str MotorParameter = {0};
 SensorData_str SensorData = {0};
-uint32_t ADC1_Buffer = 0;
-uint32_t ADC2_Buffer = 0;
+ADCData_union ADC1_Buffer = {0};
+ADCData_union ADC2_Buffer = {0};
 uint8_t UART2_Buffer[6] = {0};
 PI_str D_PI  = {0};
 PI_str Q_PI  = {0};
 PI_str Spd_PI  = {0};
 ControlCommand_str CtrlCom = {0};
+SlidingModeObserver_str SMO = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -123,8 +130,8 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADCEx_Calibration_Start(&hadc2, ADC_SINGLE_ENDED);
   
-  HAL_ADC_Start_DMA(&hadc1, &ADC1_Buffer, 2);
-  HAL_ADC_Start_DMA(&hadc2, &ADC2_Buffer, 1);
+  HAL_ADC_Start_DMA(&hadc1, &(ADC1_Buffer.DMAData), 2);
+  HAL_ADC_Start_DMA(&hadc2, &(ADC2_Buffer.DMAData), 1);
   
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
@@ -596,13 +603,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void MotorParameter_Init(void){
-    MotorParameter.Np = 5;
-    MotorParameter.J = 0.0000033f;
-    MotorParameter.Rs = 0.75f;
-    MotorParameter.Ls = 0.00095f;
-    MotorParameter.Kt = 0.11f;
-    MotorParameter.Flux = MotorParameter.Kt / 1.5f / MotorParameter.Np;
-    
     CtrlCom.CurFs = 20000;
     CtrlCom.SpdFs = 2000;
     CtrlCom.CurTs = 1.0f / CtrlCom.CurFs;
@@ -612,19 +612,30 @@ void MotorParameter_Init(void){
     
     Q_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
     Q_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
-    Q_PI.Max = 0.5f;
     
     D_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
     D_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
-    D_PI.Max = 0.5f;
     
     CtrlCom.wc_Speed = CtrlCom.wc_Current / 10;
     
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
-    Spd_PI.Max = 0.5f;
+    Spd_PI.Max = 3.2f;
     
-    CtrlCom.Spd = -1;
+    CtrlCom.Spd = -6.28f;
+    
+    SMO.h1 = 60;
+    SMO.h2 = 60;
+    SMO.E1 = 2;
+    SMO.EMF_LPF_wc = 1500 * 2 * PI;
+    SMO.Theta_PLL_wn = 500 * 2 * PI;
+    SMO.Theta_PLL_we = 250 * 2 * PI;
+    SMO.Theta_PLL_zeta = 1;
+    SMO.Spd_LPF_wc = 250 * 2 * PI;
+    
+    SMO.SpdE_PI.Kp = 2 * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we;
+    SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we * CtrlCom.CurTs;
+    SMO.SpdE_PI.Max = 2 * PI * 200 * MotorParameter.Np;
 }
 /* USER CODE END 4 */
 

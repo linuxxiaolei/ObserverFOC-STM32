@@ -1,12 +1,9 @@
 #include "FOCSub.h"
 
-float GetThetaE(float Theta, uint8_t Np){
-    return Theta * Np;
-}
-
+// 2.384us
 void Cordic(float ThetaE, float* SinTheta, float* CosTheta){
-    *SinTheta = sinf(ThetaE);
-    *CosTheta = cosf(ThetaE);
+    *SinTheta = arm_sin_f32(ThetaE);
+    *CosTheta = arm_cos_f32(ThetaE);
 }
 
 void InvPark(float Ud, float Uq, float SinTheta, float CosTheta, float* Ux, float* Uy){
@@ -30,28 +27,28 @@ void GetSector(float U1, float U2, float U3, uint8_t* Sector){
     case 2: *Sector = 6; break;}
 }
 
-void GetCCR(MotorRealTimeInformation_str* MRT_Inf){
-    MRT_Inf->Udc_K = MRT_Inf->Udc / 1.732f;
-    
-    switch(MRT_Inf->Sector){
-    case 1: MRT_Inf->Tx =  MRT_Inf->U2 / MRT_Inf->Udc_K; MRT_Inf->Ty =  MRT_Inf->U1 / MRT_Inf->Udc_K; break;
-    case 2: MRT_Inf->Tx = -MRT_Inf->U2 / MRT_Inf->Udc_K; MRT_Inf->Ty = -MRT_Inf->U3 / MRT_Inf->Udc_K; break;
-    case 3: MRT_Inf->Tx =  MRT_Inf->U1 / MRT_Inf->Udc_K; MRT_Inf->Ty =  MRT_Inf->U3 / MRT_Inf->Udc_K; break;
-    case 4: MRT_Inf->Tx = -MRT_Inf->U1 / MRT_Inf->Udc_K; MRT_Inf->Ty = -MRT_Inf->U2 / MRT_Inf->Udc_K; break;
-    case 5: MRT_Inf->Tx =  MRT_Inf->U3 / MRT_Inf->Udc_K; MRT_Inf->Ty =  MRT_Inf->U2 / MRT_Inf->Udc_K; break;
-    case 6: MRT_Inf->Tx = -MRT_Inf->U3 / MRT_Inf->Udc_K; MRT_Inf->Ty = -MRT_Inf->U1 / MRT_Inf->Udc_K; break;}
+void GetCCR(float U1, float U2, float U3, uint8_t Sector, float Uac, float* CCRa, float* CCRb, float* CCRc){
+    static float Tx, Ty;
+    static float Ta, Tb, Tc;
+    switch(Sector){
+    case 1: Tx =  U2 / Uac; Ty =  U1 / Uac; break;
+    case 2: Tx = -U2 / Uac; Ty = -U3 / Uac; break;
+    case 3: Tx =  U1 / Uac; Ty =  U3 / Uac; break;
+    case 4: Tx = -U1 / Uac; Ty = -U2 / Uac; break;
+    case 5: Tx =  U3 / Uac; Ty =  U2 / Uac; break;
+    case 6: Tx = -U3 / Uac; Ty = -U1 / Uac; break;}
 
-    MRT_Inf->Ta = (1.0f - MRT_Inf->Tx - MRT_Inf->Ty) / 2;
-    MRT_Inf->Tb = (1.0f + MRT_Inf->Tx - MRT_Inf->Ty) / 2;
-    MRT_Inf->Tc = (1.0f + MRT_Inf->Tx + MRT_Inf->Ty) / 2;
+    Ta = (1 - Tx - Ty) / 2;
+    Tb = (1 + Tx - Ty) / 2;
+    Tc = (1 + Tx + Ty) / 2;
 
-    switch(MRT_Inf->Sector){
-    case 1: MRT_Inf->CCRa = MRT_Inf->Ta;   MRT_Inf->CCRb = MRT_Inf->Tb;   MRT_Inf->CCRc = MRT_Inf->Tc;   break;
-    case 2: MRT_Inf->CCRa = MRT_Inf->Tb;   MRT_Inf->CCRb = MRT_Inf->Ta;   MRT_Inf->CCRc = MRT_Inf->Tc;   break;
-    case 3: MRT_Inf->CCRa = MRT_Inf->Tc;   MRT_Inf->CCRb = MRT_Inf->Ta;   MRT_Inf->CCRc = MRT_Inf->Tb;   break;
-    case 4: MRT_Inf->CCRa = MRT_Inf->Tc;   MRT_Inf->CCRb = MRT_Inf->Tb;   MRT_Inf->CCRc = MRT_Inf->Ta;   break;
-    case 5: MRT_Inf->CCRa = MRT_Inf->Tb;   MRT_Inf->CCRb = MRT_Inf->Tc;   MRT_Inf->CCRc = MRT_Inf->Ta;   break;
-    case 6: MRT_Inf->CCRa = MRT_Inf->Ta;   MRT_Inf->CCRb = MRT_Inf->Tc;   MRT_Inf->CCRc = MRT_Inf->Tb;   break;
+    switch(Sector){
+    case 1: *CCRa = Ta;   *CCRb = Tb;   *CCRc = Tc;   break;
+    case 2: *CCRa = Tb;   *CCRb = Ta;   *CCRc = Tc;   break;
+    case 3: *CCRa = Tc;   *CCRb = Ta;   *CCRc = Tb;   break;
+    case 4: *CCRa = Tc;   *CCRb = Tb;   *CCRc = Ta;   break;
+    case 5: *CCRa = Tb;   *CCRb = Tc;   *CCRc = Ta;   break;
+    case 6: *CCRa = Ta;   *CCRb = Tc;   *CCRc = Tb;   break;
     }
 }
 
@@ -65,9 +62,9 @@ void Park(float Ix, float Iy, float SinTheta, float CosTheta, float* Id, float* 
     *Iq = CosTheta * Iy - SinTheta * Ix;
 }
 
-int32_t delta_Theta;
-
 void GetSpd(uint32_t Theta, uint32_t* Theta_Pre, float* Speed, float SpdFs){
+    static int32_t delta_Theta;
+    
     delta_Theta = (Theta - *Theta_Pre) << 15;
     delta_Theta = delta_Theta >> 15;
     
