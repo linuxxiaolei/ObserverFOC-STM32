@@ -255,7 +255,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
     static uint16_t MotorStatus = 0;
     GPIOA->BSRR = (uint32_t)GPIO_PIN_5;
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
-  //HAL_TIM_IRQHandler(&htim1);
+  HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
     TIM1->SR &= ~TIM_SR_UIF;
     
@@ -341,7 +341,7 @@ void TIM2_IRQHandler(void)
   /* USER CODE BEGIN TIM2_IRQn 0 */
     
   /* USER CODE END TIM2_IRQn 0 */
-  //HAL_TIM_IRQHandler(&htim2);
+  HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
     TIM2->SR &= ~TIM_SR_UIF;
     GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
