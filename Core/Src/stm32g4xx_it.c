@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "FOCSub.h"
 #include "DataProcessing.h"
+#include "VOFA.h"
+#include "filt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,6 +48,10 @@
 uint8_t Encoder_Cnt = 0;
 uint8_t Encoder_CRC = 0;
 uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
+FIFO_typedef Ic_FIFO = {.length = 100};
+FIFO_typedef Ia_FIFO = {.length = 100};
+uint8_t FIFO_Cnt = 0;
+uint16_t MotorStatus = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -220,7 +226,6 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
     if(LL_DMA_IsActiveFlag_TC1(DMA1)){
         SensorData.ADC1_DMA_Ready = 1;
-        SensorData.Ic_Ready = 1;
         SensorData.Udc_Ready = 1;
     }
     LL_DMA_ClearFlag_TC1(DMA1);
@@ -238,7 +243,6 @@ void DMA1_Channel2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
     if(LL_DMA_IsActiveFlag_TC2(DMA1)){
-        SensorData.Ia_Ready = 1;
         SensorData.ADC2_DMA_Ready = 1;
     }
     LL_DMA_ClearFlag_TC2(DMA1);
@@ -256,13 +260,11 @@ void DMA1_Channel2_IRQHandler(void)
 void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
-    static uint16_t MotorStatus = 0;
     LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    TIM1->SR &= ~TIM_SR_UIF;
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-    TIM1->SR &= ~TIM_SR_UIF;
-    
     Encoder_Cnt = 0;
     Encoder_CRC = 0;
     USART2->TDR = 0x02;
@@ -274,65 +276,112 @@ void TIM1_UP_TIM16_IRQHandler(void)
         }
         break;
     case 1:
-        if(SensorData.Udc_Ready == 1) MotorStatus = 2;
+        if(SensorData.Udc_Ready == 1){
+            MotorStatus = 2;
+            FIFO_Cnt = 0;
+        }
         break;
     case 2:
-        if(SensorData.Ic_Ready == 1) MotorStatus = 3;
+        if(SensorData.Ic_Ready == 1){
+            MotorStatus = 3;
+            FIFO_Cnt = 0;
+        }
         break;
     case 3:
         if(SensorData.Ia_Ready == 1) {
             MotorStatus = 4;
+            FIFO_Cnt = 0;
             SensorData.Theta_Pre = SensorData.Theta;
         }
         break;
     }
     
     switch(MotorStatus){
-    case 4:
-        if(SensorData.ADC1_DMA_Ready == 1){
-            SensorData.ADC1_DMA_Ready = 0;
-            SensorData.Ic = ADC1_Buffer.SensorData[0] - 2048;
-            SensorData.Udc = ADC1_Buffer.SensorData[1];
+        case 2:    
+            if(SensorData.ADC1_DMA_Ready == 1){
+                SensorData.ADC1_DMA_Ready = 0;
+                
+                if(FIFO_Cnt < 100){
+                    FIFO_DataUpdate(&Ic_FIFO, ADC1_Buffer.SensorData[0]);
+                    FIFO_Cnt++;
+                }
+                else{
+                    int16_t Ic_Ave = FIFO_Get_Ave(&Ic_FIFO);
+                    
+                    if((Ic_Ave < 2098) && (Ic_Ave > 1998)){
+                        SensorData.Ic_Ave = Ic_Ave;
+                        SensorData.Ic_Ready = 1;
+                    }
+                    else{
+                        FIFO_Cnt = 0;
+                        SensorData.Ic_Ready = 0;
+                    }
+                }   
+            }
+        case 3:    
+            if(SensorData.ADC2_DMA_Ready == 1){
+                SensorData.ADC2_DMA_Ready = 0;
+                
+                if(FIFO_Cnt < 100){
+                    FIFO_DataUpdate(&Ia_FIFO, ADC2_Buffer.SensorData[0]);
+                    FIFO_Cnt++;
+                }
+                else{
+                    int16_t Ia_Ave = FIFO_Get_Ave(&Ia_FIFO);
+                    
+                    if((Ia_Ave < 2098) && (Ia_Ave > 1998)){
+                        SensorData.Ia_Ave = Ia_Ave;
+                        SensorData.Ia_Ready = 1;
+                    }
+                    else{
+                        FIFO_Cnt = 0;
+                        SensorData.Ia_Ready = 0;
+                    }
+                }   
+            }
+        case 4:
+            if(SensorData.ADC1_DMA_Ready == 1){
+                SensorData.ADC1_DMA_Ready = 0;
+                SensorData.Ic = ADC1_Buffer.SensorData[0] - 2048;
+                SensorData.Udc = ADC1_Buffer.SensorData[1];
+                
+                MRT_Inf.Udc = (3.3f * SensorData.Udc)  / (1 << 12) * (470 + 15) / 15;
+                MRT_Inf.Uac = MRT_Inf.Udc * 0.57735f;
+                MRT_Inf.Ic = (1.65f * SensorData.Ic) / (1 << 11) / 50 / 0.006f;
+            }
+            if(SensorData.ADC2_DMA_Ready == 1){
+                SensorData.ADC2_DMA_Ready = 0;
+                SensorData.Ia = 2048 - ADC2_Buffer.SensorData[0];
+                
+                MRT_Inf.Ia = (1.65f * SensorData.Ia) / (1 << 11) / 50 / 0.006f;
+            }
+            if(SensorData.Encoder_Ready == 1){
+                SensorData.Encoder_Ready = 0;
+                MRT_Inf.Theta = (PI * 2 * SensorData.Theta) / (1 << 17);
+                MRT_Inf.ThetaE = (PI * 2 * SensorData.ThetaE) / (1 << 17);
+            }
             
-            MRT_Inf.Udc = (3.3f * SensorData.Udc)  / (1 << 12) * (470 + 15) / 15;
-            MRT_Inf.Uac = MRT_Inf.Udc * 0.57735f;
-            MRT_Inf.Ic = (1.65f * SensorData.Ic) / (1 << 11) / 50 / 0.006f;
-        }
-        if(SensorData.ADC2_DMA_Ready == 1){
-            SensorData.ADC2_DMA_Ready = 0;
-            SensorData.Ia = 2048 - ADC2_Buffer.SensorData[0];
+            MRT_Inf.Ib = -MRT_Inf.Ia - MRT_Inf.Ic;
+        
+            D_PI.Max = MRT_Inf.Uac;
+            Q_PI.Max = MRT_Inf.Uac;
             
-            MRT_Inf.Ia = (1.65f * SensorData.Ia) / (1 << 11) / 50 / 0.006f;
-        }
-        if(SensorData.Encoder_Ready == 1){
-            SensorData.Encoder_Ready = 0;
-            MRT_Inf.Theta = (PI * 2 * SensorData.Theta) / (1 << 17);
-            MRT_Inf.ThetaE = (PI * 2 * SensorData.ThetaE) / (1 << 17);
-        }
-        
-        MRT_Inf.Ib = -MRT_Inf.Ia - MRT_Inf.Ic;
-    
-        D_PI.Max = MRT_Inf.Uac;
-        Q_PI.Max = MRT_Inf.Uac;
-        
-        // SlidingModeObserver3(&CtrlCom, &MotorParameter, &MRT_Inf, &SMO);
-        
-        Cordic(MRT_Inf.ThetaE, &MRT_Inf.SinTheta, &MRT_Inf.CosTheta);
-        arm_clarke_f32(MRT_Inf.Ia, MRT_Inf.Ib, &MRT_Inf.Ix, &MRT_Inf.Iy);
-        arm_park_f32(MRT_Inf.Ix, MRT_Inf.Iy, &MRT_Inf.Id, &MRT_Inf.Iq, MRT_Inf.SinTheta, MRT_Inf.CosTheta);
-        
-        MRT_Inf.Ud = PI_Control_Err(&D_PI, CtrlCom.Id - MRT_Inf.Id);
-        MRT_Inf.Uq = PI_Control_Err(&Q_PI, CtrlCom.Iq - MRT_Inf.Iq);
-        
-        arm_inv_park_f32(MRT_Inf.Ud, MRT_Inf.Uq, &MRT_Inf.Ux, &MRT_Inf.Uy, MRT_Inf.SinTheta, MRT_Inf.CosTheta);
-        InvClarke(MRT_Inf.Ux, MRT_Inf.Uy, &MRT_Inf.U1, &MRT_Inf.U2, &MRT_Inf.U3);
-        GetSector(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, &MRT_Inf.Sector);
-        GetCCR(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, MRT_Inf.Sector, MRT_Inf.Uac, &MRT_Inf.CCRa, &MRT_Inf.CCRb, &MRT_Inf.CCRc);
+            Cordic(MRT_Inf.ThetaE, &MRT_Inf.SinTheta, &MRT_Inf.CosTheta);
+            arm_clarke_f32(MRT_Inf.Ia, MRT_Inf.Ib, &MRT_Inf.Ix, &MRT_Inf.Iy);
+            arm_park_f32(MRT_Inf.Ix, MRT_Inf.Iy, &MRT_Inf.Id, &MRT_Inf.Iq, MRT_Inf.SinTheta, MRT_Inf.CosTheta);
+            
+            MRT_Inf.Ud = PI_Control_Err(&D_PI, CtrlCom.Id - MRT_Inf.Id);
+            MRT_Inf.Uq = PI_Control_Err(&Q_PI, CtrlCom.Iq - MRT_Inf.Iq);
+            
+            arm_inv_park_f32(MRT_Inf.Ud, MRT_Inf.Uq, &MRT_Inf.Ux, &MRT_Inf.Uy, MRT_Inf.SinTheta, MRT_Inf.CosTheta);
+            InvClarke(MRT_Inf.Ux, MRT_Inf.Uy, &MRT_Inf.U1, &MRT_Inf.U2, &MRT_Inf.U3);
+            GetSector(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, &MRT_Inf.Sector);
+            GetCCR(MRT_Inf.U1, MRT_Inf.U2, MRT_Inf.U3, MRT_Inf.Sector, MRT_Inf.Uac, &MRT_Inf.CCRa, &MRT_Inf.CCRb, &MRT_Inf.CCRc);
 
-        TIM1->CCR1 = (uint32_t)(MRT_Inf.CCRa * Timer_PERIOD);
-        TIM1->CCR2 = (uint32_t)(MRT_Inf.CCRb * Timer_PERIOD);
-        TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
-        break;
+            TIM1->CCR1 = (uint32_t)(MRT_Inf.CCRa * Timer_PERIOD);
+            TIM1->CCR2 = (uint32_t)(MRT_Inf.CCRb * Timer_PERIOD);
+            TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
+            break;
     }
     LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
@@ -344,16 +393,17 @@ void TIM1_UP_TIM16_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-    
+    TIM2->SR &= ~TIM_SR_UIF;
   /* USER CODE END TIM2_IRQn 0 */
   /* USER CODE BEGIN TIM2_IRQn 1 */
-    
-    TIM2->SR &= ~TIM_SR_UIF;
-    GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
-    
-    CtrlCom.Id = 0;
-    CtrlCom.Iq = PI_Control_Err(&Spd_PI, CtrlCom.Spd - MRT_Inf.Spd);
-    
+    switch(MotorStatus){
+        case 4:
+            GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
+            
+            CtrlCom.Id = 0;
+            CtrlCom.Iq = PI_Control_Err(&Spd_PI, CtrlCom.Spd - MRT_Inf.Spd);
+            break;
+    }
   /* USER CODE END TIM2_IRQn 1 */
 }
 

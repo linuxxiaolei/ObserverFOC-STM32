@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "VOFA.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +49,7 @@ const MotorParameter_str MotorParameter = {.Np = 5,
                                            .Kt = 0.11f,
                                            .Flux = 0.014667f};
 
+Frame_union DataUpToPc = {.FrameData.tail = {0x00, 0x00, 0x80, 0x7f}};
 MotorRealTimeInformation_str MRT_Inf = {0};
 SensorData_str SensorData = {0};
 ADCData_union ADC1_Buffer = {0};
@@ -161,8 +162,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-      LL_mDelay(100);
-      USART1->TDR = 0xAA;
+      LL_mDelay(1);
+      DataUpToPc.FrameData.fdata[0] = MRT_Inf.Spd;
+      DataUpToPc.FrameData.fdata[1] = MRT_Inf.Ia;
+      DataUpToPc.FrameData.fdata[2] = MRT_Inf.Ic;
+      DataUpToPc.FrameData.fdata[3] = MRT_Inf.Theta;
+      SendJustFloat(&DataUpToPc);
   }
   /* USER CODE END 3 */
 }
@@ -849,6 +854,7 @@ void DMA_Config(void){
 void ADC1_Config(void){
     LL_ADC_StartCalibration(ADC1, LL_ADC_SINGLE_ENDED);
     while (LL_ADC_IsCalibrationOnGoing(ADC1) != 0);
+    LL_ADC_ClearFlag_ADRDY(ADC1);
     LL_ADC_Enable(ADC1);
     while (LL_ADC_IsActiveFlag_ADRDY(ADC1) == 0);
 
@@ -859,6 +865,7 @@ void ADC1_Config(void){
 void ADC2_Config(void){
     LL_ADC_StartCalibration(ADC2, LL_ADC_SINGLE_ENDED);
     while (LL_ADC_IsCalibrationOnGoing(ADC2) != 0);
+    LL_ADC_ClearFlag_ADRDY(ADC2);
     LL_ADC_Enable(ADC2);
     while (LL_ADC_IsActiveFlag_ADRDY(ADC2) == 0);
 
@@ -903,7 +910,7 @@ void MotorParameter_Init(void){
     
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
-    Spd_PI.Max = 3.2f;
+    Spd_PI.Max = 0.2f;
     
     CtrlCom.Spd = -6.28f;
     

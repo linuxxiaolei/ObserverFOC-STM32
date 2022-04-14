@@ -207,6 +207,8 @@ typedef struct{
     uint32_t Theta_Pre;
     int16_t Ia;
     int16_t Ic;
+    int16_t Ia_Ave;
+    int16_t Ic_Ave;
     uint16_t Udc;
     uint8_t Udc_Ready;
     uint8_t Ia_Ready;

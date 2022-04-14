@@ -158,22 +158,22 @@
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>sinOutput</ItemText>
+          <ItemText>SensorData</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>cosOutput</ItemText>
+          <ItemText>ADC1_Buffer</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Theta</ItemText>
+          <ItemText>Ic_FIFO</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ThetaE</ItemText>
+          <ItemText>Ia_FIFO</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
@@ -222,6 +222,10 @@
         <Entry>
           <Name>System Viewer\ADC1</Name>
           <WinId>35903</WinId>
+        </Entry>
+        <Entry>
+          <Name>System Viewer\ADC2</Name>
+          <WinId>35902</WinId>
         </Entry>
         <Entry>
           <Name>System Viewer\TIM1</Name>
@@ -316,6 +320,30 @@
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
+    <File>
+      <GroupNumber>2</GroupNumber>
+      <FileNumber>6</FileNumber>
+      <FileType>1</FileType>
+      <tvExp>0</tvExp>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <bDave2>0</bDave2>
+      <PathWithFileName>..\Core\Src\VOFA.c</PathWithFileName>
+      <FilenameWithoutPath>VOFA.c</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
+    <File>
+      <GroupNumber>2</GroupNumber>
+      <FileNumber>7</FileNumber>
+      <FileType>1</FileType>
+      <tvExp>1</tvExp>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <bDave2>0</bDave2>
+      <PathWithFileName>..\Core\Src\filt.c</PathWithFileName>
+      <FilenameWithoutPath>filt.c</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
   </Group>
 
   <Group>
@@ -326,7 +354,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>6</FileNumber>
+      <FileNumber>8</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -338,7 +366,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>7</FileNumber>
+      <FileNumber>9</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -350,7 +378,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>8</FileNumber>
+      <FileNumber>10</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -362,7 +390,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>9</FileNumber>
+      <FileNumber>11</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -374,7 +402,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>10</FileNumber>
+      <FileNumber>12</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -386,7 +414,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>11</FileNumber>
+      <FileNumber>13</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -398,7 +426,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>12</FileNumber>
+      <FileNumber>14</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -410,7 +438,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>13</FileNumber>
+      <FileNumber>15</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -422,7 +450,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>14</FileNumber>
+      <FileNumber>16</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -434,7 +462,7 @@
     </File>
     <File>
       <GroupNumber>3</GroupNumber>
-      <FileNumber>15</FileNumber>
+      <FileNumber>17</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -454,7 +482,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>4</GroupNumber>
-      <FileNumber>16</FileNumber>
+      <FileNumber>18</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -474,7 +502,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>5</GroupNumber>
-      <FileNumber>17</FileNumber>
+      <FileNumber>19</FileNumber>
       <FileType>4</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
