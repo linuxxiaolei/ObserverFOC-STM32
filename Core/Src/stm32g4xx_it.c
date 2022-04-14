@@ -43,6 +43,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
+uint8_t Encoder_Cnt = 0;
+uint8_t Encoder_CRC = 0;
 uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
 /* USER CODE END PV */
 
@@ -53,15 +55,11 @@ uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void HAL_UART_RxCpltCallback(void);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_adc1;
-extern DMA_HandleTypeDef hdma_adc2;
-extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
-extern UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN EV */
 extern MotorRealTimeInformation_str MRT_Inf;
 extern MotorParameter_str MotorParameter;
@@ -201,7 +199,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
+
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -220,12 +218,14 @@ void SysTick_Handler(void)
 void DMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-    
-    SensorData.ADC1_DMA_Ready = 1;
-    SensorData.Ic_Ready = 1;
-    SensorData.Udc_Ready = 1;
+    if(LL_DMA_IsActiveFlag_TC1(DMA1)){
+        SensorData.ADC1_DMA_Ready = 1;
+        SensorData.Ic_Ready = 1;
+        SensorData.Udc_Ready = 1;
+    }
+    LL_DMA_ClearFlag_TC1(DMA1);
   /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
+
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
     
   /* USER CODE END DMA1_Channel1_IRQn 1 */
@@ -237,10 +237,14 @@ void DMA1_Channel1_IRQHandler(void)
 void DMA1_Channel2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
-    SensorData.Ia_Ready = 1;
-    SensorData.ADC2_DMA_Ready = 1;
+    if(LL_DMA_IsActiveFlag_TC2(DMA1)){
+        SensorData.Ia_Ready = 1;
+        SensorData.ADC2_DMA_Ready = 1;
+    }
+    LL_DMA_ClearFlag_TC2(DMA1);
+    
   /* USER CODE END DMA1_Channel2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc2);
+
   /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
     
   /* USER CODE END DMA1_Channel2_IRQn 1 */
@@ -253,13 +257,14 @@ void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
     static uint16_t MotorStatus = 0;
-    GPIOA->BSRR = (uint32_t)GPIO_PIN_5;
+    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim1);
+
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
     TIM1->SR &= ~TIM_SR_UIF;
     
-    HAL_UART_Receive_IT(&huart2,Encoder_buffer, ENCODER_BUFFER_NUM);
+    Encoder_Cnt = 0;
+    Encoder_CRC = 0;
     USART2->TDR = 0x02;
     
     switch(MotorStatus){
@@ -329,7 +334,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
         TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
         break;
     }
-    GPIOA->BRR = (uint32_t)GPIO_PIN_5;
+    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -341,8 +346,8 @@ void TIM2_IRQHandler(void)
   /* USER CODE BEGIN TIM2_IRQn 0 */
     
   /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
+    
     TIM2->SR &= ~TIM_SR_UIF;
     GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
     
@@ -359,22 +364,30 @@ void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
     
+    if (LL_USART_IsActiveFlag_RXNE(USART2))
+    {
+        Encoder_buffer[Encoder_Cnt] = USART2->RDR;
+        
+        if(Encoder_Cnt != 5){
+            Encoder_CRC ^= Encoder_buffer[Encoder_Cnt];
+        }
+        else{
+            if((Encoder_CRC == Encoder_buffer[5]) && (Encoder_buffer[0] == 0x02)){
+                SensorData.Theta = (~((Encoder_buffer[2] << 0) | (Encoder_buffer[3] << 8) | (Encoder_buffer[4] << 16))) & 0x1FFFF;
+                SensorData.ThetaE = (SensorData.Theta * MotorParameter.Np) & 0x1FFFF;
+                SensorData.Encoder_Ready = 1;
+                SensorData.Theta_Ready = 1;
+            }
+        }
+        
+        Encoder_Cnt++;
+    }
   /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
     
   /* USER CODE END USART2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-    uint8_t Encoder_CRC = Encoder_buffer[0] ^ Encoder_buffer[1] ^ Encoder_buffer[2] ^ Encoder_buffer[3] ^ Encoder_buffer[4];
-    
-    if((Encoder_CRC == Encoder_buffer[5]) && (Encoder_buffer[0] == 0x02)){
-        SensorData.Theta = (~((Encoder_buffer[2] << 0) | (Encoder_buffer[3] << 8) | (Encoder_buffer[4] << 16))) & 0x1FFFF;
-        SensorData.ThetaE = (SensorData.Theta * MotorParameter.Np) & 0x1FFFF;
-        SensorData.Encoder_Ready = 1;
-        SensorData.Theta_Ready = 1;
-    }
-}
+
 /* USER CODE END 1 */

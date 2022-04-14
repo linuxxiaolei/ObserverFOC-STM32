@@ -1,9 +1,10 @@
 #include "FOCSub.h"
 
-// 2.384us
+//float cosOutput, sinOutput;
 void Cordic(float ThetaE, float* SinTheta, float* CosTheta){
-    *SinTheta = arm_sin_f32(ThetaE);
-    *CosTheta = arm_cos_f32(ThetaE);
+    LL_CORDIC_WriteData(CORDIC, ThetaE / (2 * PI) * 0xFFFFFFFF);
+    *CosTheta = 1.0f * ((int32_t)LL_CORDIC_ReadData(CORDIC)) / 0x7FFFFFFF;
+    *SinTheta = 1.0f * ((int32_t)LL_CORDIC_ReadData(CORDIC)) / 0x7FFFFFFF;
 }
 
 void InvPark(float Ud, float Uq, float SinTheta, float CosTheta, float* Ux, float* Uy){
