@@ -109,11 +109,14 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
     SMO->Vx = SMOSwitchFunction1(SMO->E1, SMO->Ix - MRT_Inf->Ix);
     SMO->Vy = SMOSwitchFunction1(SMO->E1, SMO->Iy - MRT_Inf->Iy);
 
-    SMO->Ix = SMO->Ix + CtrlCom->CurTs * (-MotorParameter->Rs * SMO->Ix + MRT_Inf->Ux - SMO->h1 * SMO->Vx) / MotorParameter->Ls;
-    SMO->Iy = SMO->Iy + CtrlCom->CurTs * (-MotorParameter->Rs * SMO->Iy + MRT_Inf->Uy - SMO->h1 * SMO->Vy) / MotorParameter->Ls;
+    SMO->Ix = SMO->Ix + CtrlCom->CurTs * (MRT_Inf->Ux - MotorParameter->Rs * SMO->Ix - SMO->h1 * SMO->Vx) / MotorParameter->Ls;
+    SMO->Iy = SMO->Iy + CtrlCom->CurTs * (MRT_Inf->Uy - MotorParameter->Rs * SMO->Iy - SMO->h1 * SMO->Vy) / MotorParameter->Ls;
 
     LPF(&(SMO->Ex), SMO->h1 * SMO->Vx, CtrlCom->CurFs, SMO->EMF_LPF_wc);
     LPF(&(SMO->Ey), SMO->h1 * SMO->Vy, CtrlCom->CurFs, SMO->EMF_LPF_wc);
+    
+    SMO->EMF = sqrtf(SMO->Ex * SMO->Ex + SMO->Ey * SMO->Ey);
+    
 
     Cordic(SMO->ThetaE, &(SMO->SinTheta), &(SMO->CosTheta));
 
@@ -124,6 +127,8 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
 
     float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
     LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
+    
+    SMO->Flux = SMO->EMF / SMO->SpdE;
     
     float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
     if(ThetaE_temp < 0)

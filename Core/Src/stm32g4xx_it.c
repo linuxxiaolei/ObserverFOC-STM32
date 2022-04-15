@@ -78,6 +78,7 @@ extern PI_str Spd_PI;
 extern ControlCommand_str CtrlCom;
 extern uint8_t UART2_Buffer[6];
 extern SlidingModeObserver_str SMO;
+extern Frame_union DataUpToPc;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -255,13 +256,31 @@ void DMA1_Channel2_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles DMA1 channel3 global interrupt.
+  */
+void DMA1_Channel3_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel3_IRQn 0 */
+
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 1 */
+    if(LL_DMA_IsActiveFlag_TC3(DMA1)){
+        LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+        LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    }
+    LL_DMA_ClearFlag_TC3(DMA1);
+  /* USER CODE END DMA1_Channel3_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM1 update interrupt and TIM16 global interrupt.
   */
 void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
-    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
     TIM1->SR &= ~TIM_SR_UIF;
+    
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
@@ -318,6 +337,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
                     }
                 }   
             }
+            break;
         case 3:    
             if(SensorData.ADC2_DMA_Ready == 1){
                 SensorData.ADC2_DMA_Ready = 0;
@@ -339,10 +359,11 @@ void TIM1_UP_TIM16_IRQHandler(void)
                     }
                 }   
             }
+            break;
         case 4:
             if(SensorData.ADC1_DMA_Ready == 1){
                 SensorData.ADC1_DMA_Ready = 0;
-                SensorData.Ic = ADC1_Buffer.SensorData[0] - 2048;
+                SensorData.Ic = ADC1_Buffer.SensorData[0] - SensorData.Ic_Ave;
                 SensorData.Udc = ADC1_Buffer.SensorData[1];
                 
                 MRT_Inf.Udc = (3.3f * SensorData.Udc)  / (1 << 12) * (470 + 15) / 15;
@@ -351,7 +372,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
             }
             if(SensorData.ADC2_DMA_Ready == 1){
                 SensorData.ADC2_DMA_Ready = 0;
-                SensorData.Ia = 2048 - ADC2_Buffer.SensorData[0];
+                SensorData.Ia = SensorData.Ia_Ave - ADC2_Buffer.SensorData[0];
                 
                 MRT_Inf.Ia = (1.65f * SensorData.Ia) / (1 << 11) / 50 / 0.006f;
             }
@@ -365,6 +386,8 @@ void TIM1_UP_TIM16_IRQHandler(void)
         
             D_PI.Max = MRT_Inf.Uac;
             Q_PI.Max = MRT_Inf.Uac;
+            
+            SlidingModeObserver(&CtrlCom, &MotorParameter, &MRT_Inf, &SMO);
             
             Cordic(MRT_Inf.ThetaE, &MRT_Inf.SinTheta, &MRT_Inf.CosTheta);
             arm_clarke_f32(MRT_Inf.Ia, MRT_Inf.Ib, &MRT_Inf.Ix, &MRT_Inf.Iy);
@@ -383,7 +406,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
             TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
             break;
     }
-    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -396,15 +419,49 @@ void TIM2_IRQHandler(void)
     TIM2->SR &= ~TIM_SR_UIF;
   /* USER CODE END TIM2_IRQn 0 */
   /* USER CODE BEGIN TIM2_IRQn 1 */
-    switch(MotorStatus){
-        case 4:
-            GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
-            
-            CtrlCom.Id = 0;
-            CtrlCom.Iq = PI_Control_Err(&Spd_PI, CtrlCom.Spd - MRT_Inf.Spd);
-            break;
+    if(MotorStatus == 4){
+        GetSpd(SensorData.Theta, &SensorData.Theta_Pre, &MRT_Inf.Spd, CtrlCom.SpdFs);
+        
+        CtrlCom.Id = 0;
+        CtrlCom.Iq = PI_Control_Err(&Spd_PI, CtrlCom.Spd - MRT_Inf.Spd);
     }
+    else{
+        CtrlCom.Id = 0;
+        CtrlCom.Iq = 0;
+    }
+    
   /* USER CODE END TIM2_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM3 global interrupt.
+  */
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+    TIM3->SR &= ~TIM_SR_UIF;
+  /* USER CODE END TIM3_IRQn 0 */
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+    DataUpToPc.FrameData.fdata[0]  = MRT_Inf.Ex;
+    DataUpToPc.FrameData.fdata[1]  = MRT_Inf.Ey;
+    DataUpToPc.FrameData.fdata[2]  = SMO.Ex;
+    DataUpToPc.FrameData.fdata[3]  = SMO.Ey;
+    DataUpToPc.FrameData.fdata[4]  = MRT_Inf.Ix;
+    DataUpToPc.FrameData.fdata[5]  = MRT_Inf.Iy;
+    DataUpToPc.FrameData.fdata[6]  = SMO.Ix;
+    DataUpToPc.FrameData.fdata[7]  = SMO.Iy;
+    DataUpToPc.FrameData.fdata[8]  = MRT_Inf.ThetaE;
+    DataUpToPc.FrameData.fdata[9]  = SMO.ThetaE;
+    DataUpToPc.FrameData.fdata[10] = SMO.ThetaE2;
+    DataUpToPc.FrameData.fdata[11] = MRT_Inf.Spd;
+    DataUpToPc.FrameData.fdata[12] = SMO.SpdE;
+    DataUpToPc.FrameData.fdata[13] = MRT_Inf.EMF;
+    DataUpToPc.FrameData.fdata[14] = SMO.EMF;
+    DataUpToPc.FrameData.fdata[15] = MotorParameter.Flux;
+    DataUpToPc.FrameData.fdata[16] = SMO.Flux;
+    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+  /* USER CODE END TIM3_IRQn 1 */
 }
 
 /**

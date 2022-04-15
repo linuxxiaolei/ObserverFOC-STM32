@@ -228,6 +228,10 @@
           <WinId>35902</WinId>
         </Entry>
         <Entry>
+          <Name>System Viewer\DMA1</Name>
+          <WinId>35901</WinId>
+        </Entry>
+        <Entry>
           <Name>System Viewer\TIM1</Name>
           <WinId>35904</WinId>
         </Entry>
@@ -303,8 +307,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>../Core/Src/main.c</PathWithFileName>
-      <FilenameWithoutPath>main.c</FilenameWithoutPath>
+      <PathWithFileName>..\Core\Src\VOFA.c</PathWithFileName>
+      <FilenameWithoutPath>VOFA.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -315,8 +319,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>../Core/Src/stm32g4xx_it.c</PathWithFileName>
-      <FilenameWithoutPath>stm32g4xx_it.c</FilenameWithoutPath>
+      <PathWithFileName>..\Core\Src\filt.c</PathWithFileName>
+      <FilenameWithoutPath>filt.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -327,8 +331,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\Core\Src\VOFA.c</PathWithFileName>
-      <FilenameWithoutPath>VOFA.c</FilenameWithoutPath>
+      <PathWithFileName>../Core/Src/main.c</PathWithFileName>
+      <FilenameWithoutPath>main.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -336,11 +340,11 @@
       <GroupNumber>2</GroupNumber>
       <FileNumber>7</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\Core\Src\filt.c</PathWithFileName>
-      <FilenameWithoutPath>filt.c</FilenameWithoutPath>
+      <PathWithFileName>../Core/Src/stm32g4xx_it.c</PathWithFileName>
+      <FilenameWithoutPath>stm32g4xx_it.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

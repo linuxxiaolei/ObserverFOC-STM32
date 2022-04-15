@@ -405,16 +405,6 @@
               <FilePath>..\Core\Src\DataProcessing.c</FilePath>
             </File>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Core/Src/main.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32g4xx_it.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Core/Src/stm32g4xx_it.c</FilePath>
-            </File>
-            <File>
               <FileName>VOFA.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\VOFA.c</FilePath>
@@ -423,6 +413,16 @@
               <FileName>filt.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Core\Src\filt.c</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Core/Src/main.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32g4xx_it.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Core/Src/stm32g4xx_it.c</FilePath>
             </File>
           </Files>
         </Group>

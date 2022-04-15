@@ -73,12 +73,15 @@ static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_CORDIC_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 static void DMA_Config(void);
 static void ADC1_Config(void);
 static void ADC2_Config(void);
 static void TIM1_Config(void);
 static void TIM2_Config(void);
+static void TIM3_Config(void);
+static void USART1_Config(void);
 static void USART2_Config(void);
 static void MotorParameter_Init(void);
 /* USER CODE END PFP */
@@ -135,12 +138,15 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
   MX_CORDIC_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   DMA_Config();
   ADC1_Config();
   ADC2_Config();
   TIM1_Config();
   TIM2_Config();
+  TIM3_Config();
+  USART1_Config();
   USART2_Config();
   
     LL_CORDIC_Config(CORDIC,
@@ -162,12 +168,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-      LL_mDelay(1);
-      DataUpToPc.FrameData.fdata[0] = MRT_Inf.Spd;
-      DataUpToPc.FrameData.fdata[1] = MRT_Inf.Ia;
-      DataUpToPc.FrameData.fdata[2] = MRT_Inf.Ic;
-      DataUpToPc.FrameData.fdata[3] = MRT_Inf.Theta;
-      SendJustFloat(&DataUpToPc);
+      
+//      SendJustFloat(&DataUpToPc);
   }
   /* USER CODE END 3 */
 }
@@ -607,6 +609,45 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
+
+  /* TIM3 interrupt Init */
+  NVIC_SetPriority(TIM3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(TIM3_IRQn);
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  TIM_InitStruct.Prescaler = 3;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = Timer_PERIOD * 10;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  LL_TIM_Init(TIM3, &TIM_InitStruct);
+  LL_TIM_EnableARRPreload(TIM3);
+  LL_TIM_SetClockSource(TIM3, LL_TIM_CLOCKSOURCE_INTERNAL);
+  LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_RESET);
+  LL_TIM_DisableMasterSlaveMode(TIM3);
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -647,6 +688,25 @@ static void MX_USART1_UART_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USART1 DMA Init */
+
+  /* USART1_TX Init */
+  LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_3, LL_DMAMUX_REQ_USART1_TX);
+
+  LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+
+  LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PRIORITY_LOW);
+
+  LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_CIRCULAR);
+
+  LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PERIPH_NOINCREMENT);
+
+  LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MEMORY_INCREMENT);
+
+  LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_BYTE);
+
+  LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_BYTE);
 
   /* USER CODE BEGIN USART1_Init 1 */
 
@@ -791,6 +851,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel2_IRQn interrupt configuration */
   NVIC_SetPriority(DMA1_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
 
@@ -849,6 +912,13 @@ void DMA_Config(void){
     LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_2, 1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_2);
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_2);
+    
+    LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_3,
+                           (uint32_t)&(DataUpToPc.UartSendData),
+                           LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_TRANSMIT),
+                           LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, sizeof(DataUpToPc.UartSendData));
+    LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
 }
 
 void ADC1_Config(void){
@@ -887,6 +957,15 @@ void TIM2_Config(void){
     LL_TIM_EnableCounter(TIM2);
 }
 
+void TIM3_Config(void){
+    LL_TIM_EnableIT_UPDATE(TIM3);
+    LL_TIM_EnableCounter(TIM3);
+}
+
+void USART1_Config(void){
+    LL_USART_EnableDMAReq_TX(USART1);
+}
+
 void USART2_Config(void){
     LL_USART_ClearFlag_ORE(USART2);
     LL_USART_EnableIT_RXNE(USART2);
@@ -910,7 +989,7 @@ void MotorParameter_Init(void){
     
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
-    Spd_PI.Max = 0.2f;
+    Spd_PI.Max = 3.2f;
     
     CtrlCom.Spd = -6.28f;
     

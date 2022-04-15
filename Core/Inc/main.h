@@ -199,6 +199,8 @@ typedef struct{
     float Switch_Spd;
     float ThetaE2;
     float EMF_Flag;
+    float EMF;
+    float Flux;
 }SlidingModeObserver_str;
 
 typedef struct{
