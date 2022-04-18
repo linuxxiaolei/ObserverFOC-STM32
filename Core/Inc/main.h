@@ -130,7 +130,8 @@ typedef struct{
     float Ud;
     float Uq;
 
-    float EMF;
+    float EMF_Peak;
+    float EMF_Rms;
 
     float Ud_qCoupling;
     float Uq_dCoupling;
@@ -199,7 +200,8 @@ typedef struct{
     float Switch_Spd;
     float ThetaE2;
     float EMF_Flag;
-    float EMF;
+    float EMF_Peak;
+    float EMF_Rms;
     float Flux;
 }SlidingModeObserver_str;
 
@@ -225,6 +227,11 @@ typedef union{
 	uint32_t DMAData;
 	uint16_t SensorData[2];
 }ADCData_union;
+
+typedef union{
+	uint8_t PC_uint8[4];
+	float Pc_float;
+}PCFloatData_union;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

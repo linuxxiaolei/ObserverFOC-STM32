@@ -102,9 +102,9 @@ float SMOSwitchFunction1(float E, float Error){
 }
 
 void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorParameter, MotorRealTimeInformation_str* MRT_Inf, SlidingModeObserver_str* SMO){
-    MRT_Inf->EMF = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
-    MRT_Inf->Ex = -MRT_Inf->EMF * MRT_Inf->SinTheta;
-    MRT_Inf->Ey =  MRT_Inf->EMF * MRT_Inf->CosTheta;
+    MRT_Inf->EMF_Rms = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
+    MRT_Inf->Ex = -MRT_Inf->EMF_Rms * MRT_Inf->SinTheta;
+    MRT_Inf->Ey =  MRT_Inf->EMF_Rms * MRT_Inf->CosTheta;
 
     SMO->Vx = SMOSwitchFunction1(SMO->E1, SMO->Ix - MRT_Inf->Ix);
     SMO->Vy = SMOSwitchFunction1(SMO->E1, SMO->Iy - MRT_Inf->Iy);
@@ -115,8 +115,8 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
     LPF(&(SMO->Ex), SMO->h1 * SMO->Vx, CtrlCom->CurFs, SMO->EMF_LPF_wc);
     LPF(&(SMO->Ey), SMO->h1 * SMO->Vy, CtrlCom->CurFs, SMO->EMF_LPF_wc);
     
-    SMO->EMF = sqrtf(SMO->Ex * SMO->Ex + SMO->Ey * SMO->Ey);
-    
+    SMO->EMF_Rms = sqrtf(SMO->Ex * SMO->Ex + SMO->Ey * SMO->Ey);
+    SMO->EMF_Peak = SMO->EMF_Rms * 1.732f / 1.414f;
 
     Cordic(SMO->ThetaE, &(SMO->SinTheta), &(SMO->CosTheta));
 
@@ -128,7 +128,11 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
     float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
     LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
     
-    SMO->Flux = SMO->EMF / SMO->SpdE;
+    if((SMO->SpdE < 0.1f) && (SMO->SpdE > -0.1f))
+        SMO->Flux = 0;
+    else{
+        LPF(&(SMO->Flux), SMO->EMF_Peak / SMO->SpdE, CtrlCom->CurFs, 5 * 2 * PI);
+    }
     
     float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
     if(ThetaE_temp < 0)
@@ -139,9 +143,9 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
 }
 
 void SlidingModeObserver2(ControlCommand_str* CtrlCom, MotorParameter_str* MotorParameter, MotorRealTimeInformation_str* MRT_Inf, SlidingModeObserver_str* SMO){
-    MRT_Inf->EMF = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
-    MRT_Inf->Ex = -MRT_Inf->EMF * MRT_Inf->SinTheta;
-    MRT_Inf->Ey =  MRT_Inf->EMF * MRT_Inf->CosTheta;
+    MRT_Inf->EMF_Rms = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
+    MRT_Inf->Ex = -MRT_Inf->EMF_Rms * MRT_Inf->SinTheta;
+    MRT_Inf->Ey =  MRT_Inf->EMF_Rms * MRT_Inf->CosTheta;
 
     SMO->Vx = SMOSwitchFunction1(SMO->E1, SMO->Ix - MRT_Inf->Ix);
     SMO->Vy = SMOSwitchFunction1(SMO->E1, SMO->Iy - MRT_Inf->Iy);
@@ -179,9 +183,9 @@ void SlidingModeObserver2(ControlCommand_str* CtrlCom, MotorParameter_str* Motor
 }
 
 void SlidingModeObserver3(ControlCommand_str* CtrlCom, MotorParameter_str* MotorParameter, MotorRealTimeInformation_str* MRT_Inf, SlidingModeObserver_str* SMO){
-    MRT_Inf->EMF = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
-    MRT_Inf->Ex = -MRT_Inf->EMF * MRT_Inf->SinTheta;
-    MRT_Inf->Ey =  MRT_Inf->EMF * MRT_Inf->CosTheta;
+    MRT_Inf->EMF_Rms = MRT_Inf->Spd * MotorParameter->Np * MotorParameter->Flux;
+    MRT_Inf->Ex = -MRT_Inf->EMF_Rms * MRT_Inf->SinTheta;
+    MRT_Inf->Ey =  MRT_Inf->EMF_Rms * MRT_Inf->CosTheta;
 
     SMO->Vx = SMOSwitchFunction1(SMO->E1, SMO->Ix - MRT_Inf->Ix);
     SMO->Vy = SMOSwitchFunction1(SMO->E1, SMO->Iy - MRT_Inf->Iy);

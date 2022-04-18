@@ -108,10 +108,7 @@ int main(void)
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
   /* System interrupt init*/
-  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_2);
-
-  /* SysTick_IRQn interrupt configuration */
-  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),3, 0));
+  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_3);
 
   /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
   */
@@ -191,7 +188,7 @@ void SystemClock_Config(void)
   {
   }
 
-  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_2, 85, LL_RCC_PLLR_DIV_2);
+  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_6, 85, LL_RCC_PLLR_DIV_2);
   LL_RCC_PLL_EnableDomain_SYS();
   LL_RCC_PLL_Enable();
    /* Wait till PLL is ready */
@@ -484,15 +481,15 @@ static void MX_TIM1_Init(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM1);
 
   /* TIM1 interrupt Init */
-  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),2, 0));
+  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),3, 0));
   NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
 
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
-  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.Prescaler = 1 - 1;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_CENTER_UP;
-  TIM_InitStruct.Autoreload = Timer_PERIOD;
+  TIM_InitStruct.Autoreload = Timer_PERIOD - 1;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
   TIM_InitStruct.RepetitionCounter = 1;
   LL_TIM_Init(TIM1, &TIM_InitStruct);
@@ -587,15 +584,15 @@ static void MX_TIM2_Init(void)
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
 
   /* TIM2 interrupt Init */
-  NVIC_SetPriority(TIM2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),2, 1));
+  NVIC_SetPriority(TIM2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),4, 0));
   NVIC_EnableIRQ(TIM2_IRQn);
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
   /* USER CODE END TIM2_Init 1 */
-  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.Prescaler = 20 - 1;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = Timer_PERIOD * 20;
+  TIM_InitStruct.Autoreload = Timer_PERIOD - 1;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
   LL_TIM_Init(TIM2, &TIM_InitStruct);
   LL_TIM_EnableARRPreload(TIM2);
@@ -626,15 +623,15 @@ static void MX_TIM3_Init(void)
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
 
   /* TIM3 interrupt Init */
-  NVIC_SetPriority(TIM3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_SetPriority(TIM3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),5, 1));
   NVIC_EnableIRQ(TIM3_IRQn);
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
-  TIM_InitStruct.Prescaler = 3;
+  TIM_InitStruct.Prescaler = 4 - 1;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = Timer_PERIOD * 10;
+  TIM_InitStruct.Autoreload = Timer_PERIOD * 10 - 1;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
   LL_TIM_Init(TIM3, &TIM_InitStruct);
   LL_TIM_EnableARRPreload(TIM3);
@@ -707,6 +704,10 @@ static void MX_USART1_UART_Init(void)
   LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_BYTE);
 
   LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_BYTE);
+
+  /* USART1 interrupt Init */
+  NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(USART1_IRQn);
 
   /* USER CODE BEGIN USART1_Init 1 */
 
@@ -846,13 +847,13 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 1));
+  NVIC_SetPriority(DMA1_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
   NVIC_SetPriority(DMA1_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(DMA1_Channel2_IRQn);
   /* DMA1_Channel3_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 1));
   NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
@@ -964,6 +965,8 @@ void TIM3_Config(void){
 
 void USART1_Config(void){
     LL_USART_EnableDMAReq_TX(USART1);
+    LL_USART_ClearFlag_ORE(USART1);
+    LL_USART_EnableIT_RXNE(USART1);
 }
 
 void USART2_Config(void){
@@ -977,7 +980,7 @@ void MotorParameter_Init(void){
     CtrlCom.CurTs = 1.0f / CtrlCom.CurFs;
     CtrlCom.SpdTs = 1.0f / CtrlCom.SpdFs;
     
-    CtrlCom.wc_Current = 2.0f * PI / 10 * CtrlCom.CurFs;
+    CtrlCom.wc_Current = 2.0f * PI / 20 * CtrlCom.CurFs;
     
     Q_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
     Q_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
@@ -989,7 +992,7 @@ void MotorParameter_Init(void){
     
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
-    Spd_PI.Max = 3.2f;
+    Spd_PI.Max = 0.5f;
     
     CtrlCom.Spd = -6.28f;
     
@@ -1004,7 +1007,7 @@ void MotorParameter_Init(void){
     
     SMO.SpdE_PI.Kp = 2 * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we;
     SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we * CtrlCom.CurTs;
-    SMO.SpdE_PI.Max = 2 * PI * 200 * MotorParameter.Np;
+    SMO.SpdE_PI.Max = 2 * PI * 100 * MotorParameter.Np;
 }
 /* USER CODE END 4 */
 

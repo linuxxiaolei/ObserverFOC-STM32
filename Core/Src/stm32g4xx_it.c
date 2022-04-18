@@ -48,6 +48,7 @@
 uint8_t Encoder_Cnt = 0;
 uint8_t Encoder_CRC = 0;
 uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
+PCFloatData_union PC_buffer = {0};
 FIFO_typedef Ic_FIFO = {.length = 100};
 FIFO_typedef Ia_FIFO = {.length = 100};
 uint8_t FIFO_Cnt = 0;
@@ -280,7 +281,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
     TIM1->SR &= ~TIM_SR_UIF;
-    
+//    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
@@ -406,7 +407,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
             TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
             break;
     }
-    
+//    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -417,6 +418,7 @@ void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
     TIM2->SR &= ~TIM_SR_UIF;
+//    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM2_IRQn 0 */
   /* USER CODE BEGIN TIM2_IRQn 1 */
     if(MotorStatus == 4){
@@ -429,7 +431,7 @@ void TIM2_IRQHandler(void)
         CtrlCom.Id = 0;
         CtrlCom.Iq = 0;
     }
-    
+//    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM2_IRQn 1 */
 }
 
@@ -439,29 +441,79 @@ void TIM2_IRQHandler(void)
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
-    TIM3->SR &= ~TIM_SR_UIF;
+    
   /* USER CODE END TIM3_IRQn 0 */
   /* USER CODE BEGIN TIM3_IRQn 1 */
-    DataUpToPc.FrameData.fdata[0]  = MRT_Inf.Ex;
-    DataUpToPc.FrameData.fdata[1]  = MRT_Inf.Ey;
-    DataUpToPc.FrameData.fdata[2]  = SMO.Ex;
-    DataUpToPc.FrameData.fdata[3]  = SMO.Ey;
-    DataUpToPc.FrameData.fdata[4]  = MRT_Inf.Ix;
-    DataUpToPc.FrameData.fdata[5]  = MRT_Inf.Iy;
-    DataUpToPc.FrameData.fdata[6]  = SMO.Ix;
-    DataUpToPc.FrameData.fdata[7]  = SMO.Iy;
-    DataUpToPc.FrameData.fdata[8]  = MRT_Inf.ThetaE;
-    DataUpToPc.FrameData.fdata[9]  = SMO.ThetaE;
-    DataUpToPc.FrameData.fdata[10] = SMO.ThetaE2;
-    DataUpToPc.FrameData.fdata[11] = MRT_Inf.Spd;
-    DataUpToPc.FrameData.fdata[12] = SMO.SpdE;
-    DataUpToPc.FrameData.fdata[13] = MRT_Inf.EMF;
-    DataUpToPc.FrameData.fdata[14] = SMO.EMF;
-    DataUpToPc.FrameData.fdata[15] = MotorParameter.Flux;
-    DataUpToPc.FrameData.fdata[16] = SMO.Flux;
+    DataUpToPc.FrameData.fdata[0]  = MRT_Inf.Ix;
+    DataUpToPc.FrameData.fdata[1]  = MRT_Inf.Iy;
+    DataUpToPc.FrameData.fdata[2]  = SMO.Ix;
+    DataUpToPc.FrameData.fdata[3]  = SMO.Iy;
+    DataUpToPc.FrameData.fdata[4]  = MRT_Inf.Ux;
+    DataUpToPc.FrameData.fdata[5]  = MRT_Inf.Uy;
+    DataUpToPc.FrameData.fdata[6]  = MRT_Inf.Ex;
+    DataUpToPc.FrameData.fdata[7]  = MRT_Inf.Ey;
+    DataUpToPc.FrameData.fdata[8]  = SMO.Ex;
+    DataUpToPc.FrameData.fdata[9]  = SMO.Ey;
+    DataUpToPc.FrameData.fdata[10] = MRT_Inf.Spd;
+    DataUpToPc.FrameData.fdata[11] = SMO.SpdE;
+    DataUpToPc.FrameData.fdata[12] = MotorParameter.Flux;
+    DataUpToPc.FrameData.fdata[13] = SMO.Flux;
+    DataUpToPc.FrameData.fdata[14] = MRT_Inf.ThetaE;
+    DataUpToPc.FrameData.fdata[15] = SMO.ThetaE;
+    DataUpToPc.FrameData.fdata[16] = SMO.ThetaE2;
+    DataUpToPc.FrameData.fdata[17] = MRT_Inf.EMF_Rms;
+    DataUpToPc.FrameData.fdata[18] = SMO.EMF_Rms;
+    
     LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+    
+    TIM3->SR &= ~TIM_SR_UIF;
   /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
+  */
+void USART1_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART1_IRQn 0 */
+    static uint8_t PC_Cnt = 0;
+  /* USER CODE END USART1_IRQn 0 */
+  /* USER CODE BEGIN USART1_IRQn 1 */
+    if (LL_USART_IsActiveFlag_RXNE(USART1)){
+        uint8_t UART1_Data = USART1->RDR;
+        
+        switch(PC_Cnt){
+            case 0:
+                if(UART1_Data == 0x55){
+                    PC_Cnt = 1;
+                }
+                break;
+            case 1:
+                PC_buffer.PC_uint8[0] = UART1_Data;
+                PC_Cnt = 2;
+                break;
+            case 2:
+                PC_buffer.PC_uint8[1] = UART1_Data;
+                PC_Cnt = 3;
+                break;
+            case 3:
+                PC_buffer.PC_uint8[2] = UART1_Data;
+                PC_Cnt = 4;
+                break;
+            case 4:
+                PC_buffer.PC_uint8[3] = UART1_Data;
+                PC_Cnt = 5;
+                break;
+            case 5:
+                if(UART1_Data == 0xAA){
+                    CtrlCom.Spd = PC_buffer.Pc_float;
+                }
+                PC_Cnt = 0;
+                break;
+        }
+    }
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /**
@@ -471,8 +523,7 @@ void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
     
-    if (LL_USART_IsActiveFlag_RXNE(USART2))
-    {
+    if (LL_USART_IsActiveFlag_RXNE(USART2)){
         Encoder_buffer[Encoder_Cnt] = USART2->RDR;
         
         if(Encoder_Cnt != 5){
