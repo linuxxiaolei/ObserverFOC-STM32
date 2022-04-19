@@ -120,6 +120,7 @@ typedef struct{
     float Ia;
     float Ib;
     float Ic;
+    float Iin;
 
     float Ix;       
     float Iy;
@@ -214,6 +215,7 @@ typedef struct{
     int16_t Ia_Ave;
     int16_t Ic_Ave;
     uint16_t Udc;
+    int16_t Iin;
     uint8_t Udc_Ready;
     uint8_t Ia_Ready;
     uint8_t Ic_Ready;
@@ -222,11 +224,6 @@ typedef struct{
     uint8_t ADC2_DMA_Ready;
     uint8_t Encoder_Ready;
 }SensorData_str;
-
-typedef union{
-	uint32_t DMAData;
-	uint16_t SensorData[2];
-}ADCData_union;
 
 typedef union{
 	uint8_t PC_uint8[4];
@@ -279,6 +276,7 @@ void Error_Handler(void);
 #define PWM_phA_Init (uint32_t)(Timer_PERIOD / 2)
 #define PWM_phB_Init (uint32_t)(Timer_PERIOD / 2)
 #define PWM_phC_Init (uint32_t)(Timer_PERIOD / 2)
+#define Vref 3.0f
 
 #define TRUE 1
 #define FALSE 0

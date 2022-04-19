@@ -52,8 +52,8 @@ const MotorParameter_str MotorParameter = {.Np = 5,
 Frame_union DataUpToPc = {.FrameData.tail = {0x00, 0x00, 0x80, 0x7f}};
 MotorRealTimeInformation_str MRT_Inf = {0};
 SensorData_str SensorData = {0};
-ADCData_union ADC1_Buffer = {0};
-ADCData_union ADC2_Buffer = {0};
+uint16_t ADC1_Buffer[3] = {0};
+uint16_t ADC2_Buffer = {0};
 uint8_t UART2_Buffer[6] = {0};
 PI_str D_PI  = {0};
 PI_str Q_PI  = {0};
@@ -70,7 +70,6 @@ static void MX_USART2_UART_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_CORDIC_Init(void);
 static void MX_TIM3_Init(void);
@@ -132,7 +131,6 @@ int main(void)
   MX_DMA_Init();
   MX_ADC2_Init();
   MX_ADC1_Init();
-  MX_TIM2_Init();
   MX_USART1_UART_Init();
   MX_CORDIC_Init();
   MX_TIM3_Init();
@@ -243,9 +241,15 @@ static void MX_ADC1_Init(void)
 
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
   /**ADC1 GPIO Configuration
+  PB11   ------> ADC1_IN14
   PB12   ------> ADC1_IN11
   PB14   ------> ADC1_IN5
   */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   GPIO_InitStruct.Pin = LL_GPIO_PIN_12;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
@@ -286,7 +290,7 @@ static void MX_ADC1_Init(void)
   ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
   LL_ADC_Init(ADC1, &ADC_InitStruct);
   ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_EXT_TIM1_TRGO;
-  ADC_REG_InitStruct.SequencerLength = LL_ADC_REG_SEQ_SCAN_ENABLE_2RANKS;
+  ADC_REG_InitStruct.SequencerLength = LL_ADC_REG_SEQ_SCAN_ENABLE_3RANKS;
   ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
   ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_SINGLE;
   ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_UNLIMITED;
@@ -319,13 +323,19 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_11);
-  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_11, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_11, LL_ADC_SAMPLINGTIME_6CYCLES_5);
   LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_11, LL_ADC_SINGLE_ENDED);
 
   /** Configure Regular Channel
   */
-  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_2, LL_ADC_CHANNEL_5);
-  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_5, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_2, LL_ADC_CHANNEL_14);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_14, LL_ADC_SAMPLINGTIME_6CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_14, LL_ADC_SINGLE_ENDED);
+
+  /** Configure Regular Channel
+  */
+  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_3, LL_ADC_CHANNEL_5);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_5, LL_ADC_SAMPLINGTIME_6CYCLES_5);
   LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_5, LL_ADC_SINGLE_ENDED);
   /* USER CODE BEGIN ADC1_Init 2 */
 
@@ -357,9 +367,9 @@ static void MX_ADC2_Init(void)
 
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
   /**ADC2 GPIO Configuration
-  PB11   ------> ADC2_IN14
+  PB2   ------> ADC2_IN12
   */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_2;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -423,9 +433,9 @@ static void MX_ADC2_Init(void)
 
   /** Configure Regular Channel
   */
-  LL_ADC_REG_SetSequencerRanks(ADC2, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_14);
-  LL_ADC_SetChannelSamplingTime(ADC2, LL_ADC_CHANNEL_14, LL_ADC_SAMPLINGTIME_2CYCLES_5);
-  LL_ADC_SetChannelSingleDiff(ADC2, LL_ADC_CHANNEL_14, LL_ADC_SINGLE_ENDED);
+  LL_ADC_REG_SetSequencerRanks(ADC2, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_12);
+  LL_ADC_SetChannelSamplingTime(ADC2, LL_ADC_CHANNEL_12, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC2, LL_ADC_CHANNEL_12, LL_ADC_SINGLE_ENDED);
   /* USER CODE BEGIN ADC2_Init 2 */
 
   /* USER CODE END ADC2_Init 2 */
@@ -563,45 +573,6 @@ static void MX_TIM1_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
   LL_GPIO_Init(INc_GPIO_Port, &GPIO_InitStruct);
-
-}
-
-/**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
-
-  /* TIM2 interrupt Init */
-  NVIC_SetPriority(TIM2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),4, 0));
-  NVIC_EnableIRQ(TIM2_IRQn);
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  TIM_InitStruct.Prescaler = 20 - 1;
-  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = Timer_PERIOD - 1;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  LL_TIM_Init(TIM2, &TIM_InitStruct);
-  LL_TIM_EnableARRPreload(TIM2);
-  LL_TIM_SetClockSource(TIM2, LL_TIM_CLOCKSOURCE_INTERNAL);
-  LL_TIM_SetTriggerOutput(TIM2, LL_TIM_TRGO_RESET);
-  LL_TIM_DisableMasterSlaveMode(TIM2);
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -900,15 +871,15 @@ static void MX_GPIO_Init(void)
 void DMA_Config(void){
     LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_1,
                            LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA_MULTI),
-                           (uint32_t)&(ADC1_Buffer.DMAData),
+                           (uint32_t)&(ADC1_Buffer),
                            LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, 2);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, 3);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_1);
     LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
     
     LL_DMA_ConfigAddresses(DMA1, LL_DMA_CHANNEL_2,
                            LL_ADC_DMA_GetRegAddr(ADC2, LL_ADC_DMA_REG_REGULAR_DATA),
-                           (uint32_t)&(ADC2_Buffer.DMAData),
+                           (uint32_t)&(ADC2_Buffer),
                            LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
     LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_2, 1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_2);
@@ -996,18 +967,18 @@ void MotorParameter_Init(void){
     
     CtrlCom.Spd = -6.28f;
     
-    SMO.h1 = 60;
-    SMO.h2 = 60;
-    SMO.E1 = 2;
-    SMO.EMF_LPF_wc = 1500 * 2 * PI;
-    SMO.Theta_PLL_wn = 500 * 2 * PI;
-    SMO.Theta_PLL_we = 250 * 2 * PI;
-    SMO.Theta_PLL_zeta = 1;
-    SMO.Spd_LPF_wc = 250 * 2 * PI;
+    SMO.h1 = 120.0f;
+    SMO.h2 = 30.0f;
+    SMO.E1 = 3.2f;
+    SMO.EMF_LPF_wc = 1500.0f * 2 * PI;
+    SMO.Theta_PLL_wn = 500.0f * 2 * PI;
+    SMO.Theta_PLL_we = 250.0f * 2 * PI;
+    SMO.Theta_PLL_zeta = 1.0f;
+    SMO.Spd_LPF_wc = 250.0f * 2 * PI;
     
-    SMO.SpdE_PI.Kp = 2 * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we;
+    SMO.SpdE_PI.Kp = 2.0f * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we;
     SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we * CtrlCom.CurTs;
-    SMO.SpdE_PI.Max = 2 * PI * 100 * MotorParameter.Np;
+    SMO.SpdE_PI.Max = 2.0f * PI * 100 * MotorParameter.Np;
 }
 /* USER CODE END 4 */
 
