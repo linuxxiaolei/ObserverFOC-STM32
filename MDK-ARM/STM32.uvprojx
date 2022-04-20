@@ -424,6 +424,11 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32g4xx_it.c</FilePath>
             </File>
+            <File>
+              <FileName>FOC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\FOC.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -46,8 +46,8 @@ const MotorParameter_str MotorParameter = {.Np = 5,
                                            .J = 0.0000033f,
                                            .Rs = 0.75f,
                                            .Ls = 0.00095f,
-                                           .Kt = 0.11f,
-                                           .Flux = 0.014667f};
+                                           .Kt = 0.10005f,
+                                           .Flux = 0.01334f};
 
 Frame_union DataUpToPc = {.FrameData.tail = {0x00, 0x00, 0x80, 0x7f}};
 MotorRealTimeInformation_str MRT_Inf = {0};
@@ -72,7 +72,6 @@ static void MX_ADC2_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_CORDIC_Init(void);
-static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 static void DMA_Config(void);
 static void ADC1_Config(void);
@@ -133,7 +132,6 @@ int main(void)
   MX_ADC1_Init();
   MX_USART1_UART_Init();
   MX_CORDIC_Init();
-  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   DMA_Config();
   ADC1_Config();
@@ -491,7 +489,7 @@ static void MX_TIM1_Init(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM1);
 
   /* TIM1 interrupt Init */
-  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),3, 0));
+  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),2, 0));
   NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
 
   /* USER CODE BEGIN TIM1_Init 1 */
@@ -573,45 +571,6 @@ static void MX_TIM1_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
   LL_GPIO_Init(INc_GPIO_Port, &GPIO_InitStruct);
-
-}
-
-/**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM3_Init(void)
-{
-
-  /* USER CODE BEGIN TIM3_Init 0 */
-
-  /* USER CODE END TIM3_Init 0 */
-
-  LL_TIM_InitTypeDef TIM_InitStruct = {0};
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
-
-  /* TIM3 interrupt Init */
-  NVIC_SetPriority(TIM3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),5, 1));
-  NVIC_EnableIRQ(TIM3_IRQn);
-
-  /* USER CODE BEGIN TIM3_Init 1 */
-
-  /* USER CODE END TIM3_Init 1 */
-  TIM_InitStruct.Prescaler = 4 - 1;
-  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = Timer_PERIOD * 10 - 1;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  LL_TIM_Init(TIM3, &TIM_InitStruct);
-  LL_TIM_EnableARRPreload(TIM3);
-  LL_TIM_SetClockSource(TIM3, LL_TIM_CLOCKSOURCE_INTERNAL);
-  LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_RESET);
-  LL_TIM_DisableMasterSlaveMode(TIM3);
-  /* USER CODE BEGIN TIM3_Init 2 */
-
-  /* USER CODE END TIM3_Init 2 */
 
 }
 
@@ -824,7 +783,7 @@ static void MX_DMA_Init(void)
   NVIC_SetPriority(DMA1_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(DMA1_Channel2_IRQn);
   /* DMA1_Channel3_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 1));
+  NVIC_SetPriority(DMA1_Channel3_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),1, 0));
   NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
@@ -965,22 +924,25 @@ void MotorParameter_Init(void){
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
     Spd_PI.Max = 0.5f;
     
-    CtrlCom.Spd = -6.28f;
+    CtrlCom.Spd_Target = 0;
+    CtrlCom.Spd = 0;
     
-    SMO.h1 = 120.0f;
-    SMO.h2 = 30.0f;
-    SMO.E1 = 3.2f;
+    SMO.h1 = 60.0f;
+    SMO.h2 = 120.0f;
+    SMO.E1 = 2;
     SMO.EMF_LPF_wc = 1500.0f * 2 * PI;
     SMO.Theta_PLL_wn = 500.0f * 2 * PI;
     SMO.Theta_PLL_we = 250.0f * 2 * PI;
     SMO.Theta_PLL_zeta = 1.0f;
     SMO.Spd_LPF_wc = 250.0f * 2 * PI;
+    SMO.Switch_Spd = PI * 1 * 2;
+    SMO.Switch_EMF = SMO.Switch_Spd * MotorParameter.Np * MotorParameter.Flux;
     
-    SMO.SpdE_PI.Kp = 2.0f * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we;
-    SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn / MotorParameter.Flux / SMO.Theta_PLL_we * CtrlCom.CurTs;
-    SMO.SpdE_PI.Max = 2.0f * PI * 100 * MotorParameter.Np;
+    SMO.SpdE_PI.Kp = 2.0f * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn;
+    SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn * CtrlCom.CurTs;
+    SMO.SpdE_PI.Max = PI * 2 * 100 * MotorParameter.Np;
 }
-/* USER CODE END 4 */
+/* USER CODE END 4 */ 
 
 /**
   * @brief  This function is executed in case of error occurrence.

@@ -67,6 +67,7 @@ typedef struct{
 
 typedef struct{    
     float Spd;
+    float Spd_Target;
 
     float Id;
     float Iq;
@@ -199,6 +200,7 @@ typedef struct{
     float Theta_PLL_zeta;
     float Spd_LPF_wc;
     float Switch_Spd;
+    float Switch_EMF;
     float ThetaE2;
     float EMF_Flag;
     float EMF_Peak;
