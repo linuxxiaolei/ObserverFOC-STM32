@@ -205,7 +205,13 @@ typedef struct{
     float EMF_Flag;
     float EMF_Peak;
     float EMF_Rms;
+    float EMF_Rms2;
+    int8_t EMF_Dir;
     float Flux;
+    uint8_t status;
+    uint8_t QuadDec_X;
+    uint8_t QuadDec_Y;
+    uint8_t QuadDec_Y_temp;
 }SlidingModeObserver_str;
 
 typedef struct{

@@ -273,7 +273,7 @@ void DMA1_Channel3_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel3_IRQn 1 */
     if(LL_DMA_IsActiveFlag_TC3(DMA1)){
         LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
-        LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
+//        LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
     }
     LL_DMA_ClearFlag_TC3(DMA1);
   /* USER CODE END DMA1_Channel3_IRQn 1 */
@@ -286,7 +286,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
     TIM1->SR &= ~TIM_SR_UIF;
-    //LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
 
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
@@ -416,12 +416,22 @@ void TIM1_UP_TIM16_IRQHandler(void)
                 DataUpToPc.FrameData.fdata[13]  = SMO.Ey;
                 
                 DataUpToPc.FrameData.fdata[14]  = MRT_Inf.ThetaE;
-                DataUpToPc.FrameData.fdata[15]  = SMO.ThetaE2;
+                DataUpToPc.FrameData.fdata[15]  = SMO.ThetaE;
                 
                 DataUpToPc.FrameData.fdata[16]  = MRT_Inf.EMF_Rms;
                 DataUpToPc.FrameData.fdata[17]  = SMO.EMF_Rms;
                 
-                LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
+                DataUpToPc.FrameData.fdata[18]  = SMO.ThetaE2;
+                
+                DataUpToPc.FrameData.fdata[19]  = SMO.de;
+                DataUpToPc.FrameData.fdata[20]  = SMO.status;
+                DataUpToPc.FrameData.fdata[21]  = SMO.EMF_Rms2;
+                DataUpToPc.FrameData.fdata[22]  = SMO.EMF_Dir;
+                
+                DataUpToPc.FrameData.fdata[23]  = SMO.QuadDec_X;
+                DataUpToPc.FrameData.fdata[24]  = SMO.QuadDec_Y;
+                
+//                LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
                 LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
                 
                 UART_Cnt = 0;
@@ -434,7 +444,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
             TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
             break;
     }
-    //LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
+    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_5);
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -482,6 +492,10 @@ void USART1_IRQHandler(void)
                             break;
                         case 0x03:
                             SMO.h2 = PC_buffer.Pc_float;
+                            break;
+                        case 0x04:
+                            SMO.Switch_Spd = PC_buffer.Pc_float * PI * 2;
+                            SMO.Switch_EMF = SMO.Switch_Spd * MotorParameter.Np * MotorParameter.Flux;
                             break;
                     }
                 }

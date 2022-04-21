@@ -116,35 +116,104 @@ void SlidingModeObserver(ControlCommand_str* CtrlCom, MotorParameter_str* MotorP
     SMO->Ex = SMO->Ex + CtrlCom->CurTs * (-SMO->SpdE * SMO->Ey + SMO->h2 * SMO->Vx / MotorParameter->Ls);
     SMO->Ey = SMO->Ey + CtrlCom->CurTs * ( SMO->SpdE * SMO->Ex + SMO->h2 * SMO->Vy / MotorParameter->Ls);
     
+    if(SMO->Ex > SMO->Switch_EMF * 0.25f){
+        SMO->QuadDec_X = 1;
+    }
+    else if(SMO->Ex < -SMO->Switch_EMF * 0.25f){
+        SMO->QuadDec_X = 0;
+    }
+    
+    if(SMO->Ey > SMO->Switch_EMF * 0.25f){
+        SMO->QuadDec_Y = 1;
+        if(SMO->QuadDec_Y_temp == 0){
+            SMO->EMF_Dir = (SMO->QuadDec_X)?(1):(-1);
+        }    
+    }
+    else if(SMO->Ey < -SMO->Switch_EMF * 0.25f){
+        SMO->QuadDec_Y = 0;
+    }
+    
+    SMO->QuadDec_Y_temp = SMO->QuadDec_Y;
+    
     SMO->EMF_Rms = sqrtf(SMO->Ex * SMO->Ex + SMO->Ey * SMO->Ey);
+    SMO->EMF_Rms2 =  -SMO->Ex * SMO->SinTheta + SMO->Ey * SMO->CosTheta;
     SMO->EMF_Peak = SMO->EMF_Rms * 1.732f / 1.414f;
 
     Cordic(SMO->ThetaE, &(SMO->SinTheta), &(SMO->CosTheta));
-
-    if(SMO->EMF_Rms < SMO->Switch_EMF){
-        SMO->de = (-SMO->Ex * SMO->CosTheta - SMO->Ey * SMO->SinTheta) / SMO->Switch_EMF;
+    
+    switch(SMO->status){
+        case 0:
+            if(SMO->EMF_Rms > SMO->Switch_EMF * 0.5f){
+                SMO->status = 1;
+            }
+            else{
+                SMO->status = 0;
+            }
+            break;
+        case 1:
+            if(SMO->EMF_Rms < SMO->Switch_EMF * 0.25f){
+                SMO->status = 0;
+            }
+            else if(SMO->EMF_Rms > SMO->Switch_EMF){
+                SMO->status = 2;
+            }
+            else{
+                SMO->status = 1;
+            }
+            break;
+        case 2:
+            if(SMO->EMF_Rms < SMO->Switch_EMF * 0.25f){
+                SMO->status = 0;
+            }
+            else{
+                SMO->status = 2;
+            }
+            break;
     }
-    else{
-        SMO->de = (-SMO->Ex * SMO->CosTheta - SMO->Ey * SMO->SinTheta) / SMO->EMF_Rms;
+    
+    float SpdE = 0;
+    float ThetaE_temp = 0;
+    
+    switch(SMO->status){
+        case 0:
+            LPF(&(SMO->SpdE), 0, CtrlCom->CurFs, SMO->Spd_LPF_wc);
+        
+            ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
+            if(ThetaE_temp < 0)
+                ThetaE_temp += 2 * PI;
+            SMO->ThetaE = fmodf(ThetaE_temp, 2 * PI);
+            break;
+        case 1:
+            SMO->de = (-SMO->Ex * SMO->CosTheta - SMO->Ey * SMO->SinTheta) / SMO->Switch_EMF * SMO->EMF_Dir;
+            
+            SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
+            LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
+        
+            ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
+            if(ThetaE_temp < 0)
+                ThetaE_temp += 2 * PI;
+            SMO->ThetaE = fmodf(ThetaE_temp, 2 * PI);
+            SMO->ThetaE2 = atanf(-SMO->Ex / SMO->Ey);
+            break;
+        case 2:
+            SMO->de = (-SMO->Ex * SMO->CosTheta - SMO->Ey * SMO->SinTheta) / SMO->EMF_Rms * SMO->EMF_Dir;
+            
+            SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
+            LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
+        
+            ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
+            if(ThetaE_temp < 0)
+                ThetaE_temp += 2 * PI;
+            SMO->ThetaE = fmodf(ThetaE_temp, 2 * PI);
+            SMO->ThetaE2 = atanf(-SMO->Ex / SMO->Ey);
+            break;
     }
-
-    if(SMO->EMF_Flag)
-        SMO->de = -SMO->de;
-
-    float SpdE = PI_Control_Err(&(SMO->SpdE_PI), SMO->de);
-    LPF(&(SMO->SpdE), SpdE, CtrlCom->CurFs, SMO->Spd_LPF_wc);
     
     if((SMO->SpdE < 0.1f) && (SMO->SpdE > -0.1f))
         SMO->Flux = 0;
     else{
         LPF(&(SMO->Flux), fabsf(SMO->EMF_Peak / SMO->SpdE), CtrlCom->CurFs, 5 * 2 * PI);
     }
-    
-    float ThetaE_temp = SMO->ThetaE + SpdE * CtrlCom->CurTs;
-    if(ThetaE_temp < 0)
-        ThetaE_temp += 2 * PI;
-    SMO->ThetaE = fmodf(ThetaE_temp, 2 * PI);
-    SMO->ThetaE2 = atan2f(-SMO->Ex , SMO->Ey);
 }
 
 void CtrlComFilter(float *Target, float CtrlCom, float TickAdd){

@@ -935,7 +935,7 @@ void MotorParameter_Init(void){
     SMO.Theta_PLL_we = 250.0f * 2 * PI;
     SMO.Theta_PLL_zeta = 1.0f;
     SMO.Spd_LPF_wc = 250.0f * 2 * PI;
-    SMO.Switch_Spd = PI * 1 * 2;
+    SMO.Switch_Spd = PI * 2 * 4;
     SMO.Switch_EMF = SMO.Switch_Spd * MotorParameter.Np * MotorParameter.Flux;
     
     SMO.SpdE_PI.Kp = 2.0f * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn;
