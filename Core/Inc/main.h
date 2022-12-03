@@ -51,6 +51,7 @@ extern "C" {
 #include <math.h>
 #include <stdint.h>
 #include "arm_math.h"
+#include "filt.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -65,9 +66,15 @@ typedef struct{
     float Out_temp;
 }PI_str;
 
-typedef struct{    
+typedef struct{
+    int8_t Spd_Tick;
+    int8_t Start_Flag;
+    int8_t Stop_Flag;
+    
     float Spd;
     float Spd_Target;
+    float Uq_Target;
+    float Id_Target;
 
     float Id;
     float Iq;
@@ -87,7 +94,8 @@ typedef struct{
 }ControlCommand_str;
 
 typedef struct{
-    float Ls;
+    float Ld;
+    float Lq;
     float Rs;
     float Kt;
     float J;
@@ -98,7 +106,7 @@ typedef struct{
 typedef struct{
     float Theta;
     float Spd;
-    float Theta_Pre;
+    float Spd_rpm;
 
     float Udc;
 
@@ -128,6 +136,7 @@ typedef struct{
 
     float Id;
     float Iq;
+    float Iq_Ave;
 
     float Ud;
     float Uq;
@@ -187,6 +196,7 @@ typedef struct{
     float h2;
     float de;
     PI_str SpdE_PI;
+    float Spd;
     float SpdE;
     float ThetaE;
     float SinTheta;
@@ -201,11 +211,9 @@ typedef struct{
     float Spd_LPF_wc;
     float Switch_Spd;
     float Switch_EMF;
-    float ThetaE2;
     float EMF_Flag;
     float EMF_Peak;
     float EMF_Rms;
-    float EMF_Rms2;
     int8_t EMF_Dir;
     float Flux;
     uint8_t status;
@@ -232,6 +240,84 @@ typedef struct{
     uint8_t ADC2_DMA_Ready;
     uint8_t Encoder_Ready;
 }SensorData_str;
+
+typedef struct{
+    float a1;
+    float a2;
+    float b1;
+    float c1;
+    float d1;
+    float d2;
+    float m;
+}HFI_Rec_str;
+
+typedef enum{
+    IH_INIT = 0,
+    IH_WAIT,
+    THETAE_INIT,
+    THETAE_WAIT,
+    POLE_INIT,
+    POLE_N_WAIT,
+    POLE_S_WAIT,
+    HFI_WORK,
+    HFI_SMO_MIX,
+    SMO_WORK,
+    HFI_WAIT
+}HFI_Status_enum;
+
+typedef struct{
+    float Theta;
+    float ThetaE;
+    float delta_ThetaE;
+    float SinTheta;
+    float CosTheta;
+    float SinTheta_Rec;
+    float CosTheta_Rec;
+    float Vh;
+    float Vdh;
+
+    float Ud;
+    float Uq;
+
+    float Ux;
+    float Uy;
+    float Ux_temp;
+    float Uy_temp;
+
+    float Ix;
+    float Iy;
+    float Ix_temp;
+    float Iy_temp;
+    float Ixh;
+    float Iyh;
+    float Ih;
+    float PLL_wn;
+    float PLL_zeta;
+    float Spd_LPF_wc;
+    int8_t Dir;
+    PI_str SpdE_PI;
+    float SpdE;
+    float Spd;
+    uint8_t Ready;
+    float ThetaE_Err;
+    float Ih_Err;
+    int32_t Start_cnt;
+    float Ih_LPF_wc;
+    float ThetaE_Err_LPF_wc;
+    int32_t Pulse_cnt;
+    float Ipulse_Max;
+    float Ipulse_Min;
+    HFI_Rec_str Rec;
+    float ThetaE_Rec;
+    float ThetaE_Rec_temp;
+    HFI_Status_enum status;
+    HFI_Status_enum status_temp;
+    int32_t status_cnt;
+    float SpdE_Rec;
+    float Spd_Rec;
+    float SinThetaE_Rec;
+    float CosThetaE_Rec;
+}HighFrequencyInjection_str;
 
 typedef union{
 	uint8_t PC_uint8[4];

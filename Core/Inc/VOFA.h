@@ -4,7 +4,7 @@
 #include "main.h"
 #include <stdint.h>
 
-#define CH_COUNT 25
+#define CH_COUNT 7
 
 typedef struct{
     float fdata[CH_COUNT];

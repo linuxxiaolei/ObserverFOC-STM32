@@ -63,12 +63,27 @@ void Park(float Ix, float Iy, float SinTheta, float CosTheta, float* Id, float* 
     *Iq = CosTheta * Iy - SinTheta * Ix;
 }
 
-void GetSpd(uint32_t Theta, uint32_t* Theta_Pre, float* Speed, float SpdFs){
+void Spd_Timer(int8_t* Spd_Tick){
+    if(*Spd_Tick < 9)
+        *Spd_Tick += 1;
+    else
+        *Spd_Tick = 0;
+}
+
+void GetSpd(uint32_t Theta, uint32_t* Theta_Pre, float* Speed, float SpdFs, int8_t Spd_Tick, int8_t* Start_Flag){
     static int32_t delta_Theta;
     
-    delta_Theta = (Theta - *Theta_Pre) << 15;
-    delta_Theta = delta_Theta >> 15;
-    
-    *Speed = (2 * PI) * delta_Theta / (1 << 17) * SpdFs;
-    *Theta_Pre = Theta;
+    if(Spd_Tick == 0){
+        if(*Start_Flag != 1){
+            *Start_Flag = 1;
+            *Theta_Pre = Theta;
+        }
+        else{
+            delta_Theta = (Theta - *Theta_Pre) << 15;
+            delta_Theta = delta_Theta >> 15;
+            
+            *Speed = (2 * PI) * delta_Theta / (1 << 17) * SpdFs;
+            *Theta_Pre = Theta;
+        }
+    }
 }

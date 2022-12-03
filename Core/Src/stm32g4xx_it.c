@@ -46,16 +46,15 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-int8_t Spd_Cnt = 0;
 int8_t UART_Cnt = 0;
 uint8_t Encoder_Cnt = 0;
 uint8_t Encoder_CRC = 0;
 uint8_t Encoder_buffer[ENCODER_BUFFER_NUM] = {0};
 uint8_t PC_Command = 0;
 PCFloatData_union PC_buffer = {0};
-FIFO_typedef Ic_FIFO = {.length = 100};
-FIFO_typedef Ia_FIFO = {.length = 100};
-uint8_t FIFO_Cnt = 0;
+FIFO_int16 Ic_FIFO = {.length = 500};
+FIFO_int16 Ia_FIFO = {.length = 500};
+uint16_t FIFO_Cnt = 0;
 uint16_t MotorStatus = 0;
 /* USER CODE END PV */
 
@@ -84,6 +83,7 @@ extern ControlCommand_str CtrlCom;
 extern uint8_t UART2_Buffer[6];
 extern SlidingModeObserver_str SMO;
 extern Frame_union DataUpToPc;
+extern HighFrequencyInjection_str HFI;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -326,12 +326,12 @@ void TIM1_UP_TIM16_IRQHandler(void)
             if(SensorData.ADC1_DMA_Ready == 1){
                 SensorData.ADC1_DMA_Ready = 0;
                 
-                if(FIFO_Cnt < 100){
-                    FIFO_DataUpdate(&Ic_FIFO, ADC1_Buffer[0]);
+                if(FIFO_Cnt < 1000){
+                    FIFO_DataUpdate_int16(&Ic_FIFO, ADC1_Buffer[0]);
                     FIFO_Cnt++;
                 }
                 else{
-                    int16_t Ic_Ave = FIFO_Get_Ave(&Ic_FIFO);
+                    int16_t Ic_Ave = FIFO_Get_Ave_int16(&Ic_FIFO);
                     
                     if((Ic_Ave < 2098) && (Ic_Ave > 1998)){
                         SensorData.Ic_Ave = Ic_Ave;
@@ -348,12 +348,12 @@ void TIM1_UP_TIM16_IRQHandler(void)
             if(SensorData.ADC1_DMA_Ready == 1){
                 SensorData.ADC1_DMA_Ready = 0;
                 
-                if(FIFO_Cnt < 100){
-                    FIFO_DataUpdate(&Ia_FIFO, ADC1_Buffer[1]);
+                if(FIFO_Cnt < 1000){
+                    FIFO_DataUpdate_int16(&Ia_FIFO, ADC1_Buffer[1]);
                     FIFO_Cnt++;
                 }
                 else{
-                    int16_t Ia_Ave = FIFO_Get_Ave(&Ia_FIFO);
+                    int16_t Ia_Ave = FIFO_Get_Ave_int16(&Ia_FIFO);
                     
                     if((Ia_Ave < 2098) && (Ia_Ave > 1998)){
                         SensorData.Ia_Ave = Ia_Ave;
@@ -390,55 +390,32 @@ void TIM1_UP_TIM16_IRQHandler(void)
             Q_PI.Max = MRT_Inf.Uac;
             
             if(SensorData.Encoder_Ready == 1){
-                SensorData.Encoder_Ready = 0;
+                //SensorData.Encoder_Ready = 0;
                 MRT_Inf.Theta = (PI * 2 * SensorData.Theta) / (1 << 17);
                 MRT_Inf.ThetaE = (PI * 2 * SensorData.ThetaE) / (1 << 17);
             }
             
-            if(UART_Cnt < 19){
+            if(UART_Cnt < 9){
                 UART_Cnt++;
             }else{
-                DataUpToPc.FrameData.fdata[0]  = MRT_Inf.Ux;
-                DataUpToPc.FrameData.fdata[1]  = MRT_Inf.Ex;
-                DataUpToPc.FrameData.fdata[2]  = MRT_Inf.Ix;
-                DataUpToPc.FrameData.fdata[3]  = SMO.Ix;
-                DataUpToPc.FrameData.fdata[4]  = SMO.Ex;
-                
-                DataUpToPc.FrameData.fdata[5]  = MRT_Inf.Spd * MotorParameter.Np;
-                DataUpToPc.FrameData.fdata[6]  = SMO.SpdE;
-                DataUpToPc.FrameData.fdata[7]  = MotorParameter.Flux;
-                DataUpToPc.FrameData.fdata[8]  = SMO.Flux;
-                
-                DataUpToPc.FrameData.fdata[9]  = MRT_Inf.Uy;
-                DataUpToPc.FrameData.fdata[10]  = MRT_Inf.Ey;
-                DataUpToPc.FrameData.fdata[11]  = MRT_Inf.Iy;
-                DataUpToPc.FrameData.fdata[12]  = SMO.Iy;
-                DataUpToPc.FrameData.fdata[13]  = SMO.Ey;
-                
-                DataUpToPc.FrameData.fdata[14]  = MRT_Inf.ThetaE;
-                DataUpToPc.FrameData.fdata[15]  = SMO.ThetaE;
-                
-                DataUpToPc.FrameData.fdata[16]  = MRT_Inf.EMF_Rms;
-                DataUpToPc.FrameData.fdata[17]  = SMO.EMF_Rms;
-                
-                DataUpToPc.FrameData.fdata[18]  = SMO.ThetaE2;
-                
-                DataUpToPc.FrameData.fdata[19]  = SMO.de;
-                DataUpToPc.FrameData.fdata[20]  = SMO.status;
-                DataUpToPc.FrameData.fdata[21]  = SMO.EMF_Rms2;
-                DataUpToPc.FrameData.fdata[22]  = SMO.EMF_Dir;
-                
-                DataUpToPc.FrameData.fdata[23]  = SMO.QuadDec_X;
-                DataUpToPc.FrameData.fdata[24]  = SMO.QuadDec_Y;
+                MRT_Inf.Spd_rpm = MRT_Inf.Spd * 9.5493f;
+
+                DataUpToPc.FrameData.fdata[0]  = MRT_Inf.Ud;
+                DataUpToPc.FrameData.fdata[1]  = MRT_Inf.Uq;
+                DataUpToPc.FrameData.fdata[2]  = MRT_Inf.Spd_rpm;
+                DataUpToPc.FrameData.fdata[3]  = MRT_Inf.Id;
+                DataUpToPc.FrameData.fdata[4]  = CtrlCom.Id;
+                DataUpToPc.FrameData.fdata[5]  = MRT_Inf.Iq;
+                DataUpToPc.FrameData.fdata[6]  = CtrlCom.Iq;
                 
 //                LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_5);
                 LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
                 
                 UART_Cnt = 0;
             }
+            CtrlComFilter(&CtrlCom.Spd, CtrlCom.Spd_Target, 0.03f);
+            FOC_Mode_Select(&D_PI, &Q_PI, &Spd_PI, &SensorData, &CtrlCom, &MotorParameter, &MRT_Inf, &SMO, &HFI);
             
-            FOCwithSensor(&Spd_Cnt, &D_PI, &Q_PI, &Spd_PI, &SensorData, &CtrlCom, &MotorParameter, &MRT_Inf, &SMO);
-
             TIM1->CCR1 = (uint32_t)(MRT_Inf.CCRa * Timer_PERIOD);
             TIM1->CCR2 = (uint32_t)(MRT_Inf.CCRb * Timer_PERIOD);
             TIM1->CCR3 = (uint32_t)(MRT_Inf.CCRc * Timer_PERIOD);
@@ -462,40 +439,118 @@ void USART1_IRQHandler(void)
         
         switch(PC_Cnt){
             case 0:
-                PC_Command = UART1_Data;
-                PC_Cnt = 1;
+                if(UART1_Data == 0x00){
+                    PC_Cnt = 1;
+                }
+                else{
+                    PC_Cnt = 0;
+                }
                 break;
             case 1:
-                PC_buffer.PC_uint8[0] = UART1_Data;
-                PC_Cnt = 2;
+                if(UART1_Data == 0x00){
+                    PC_Cnt = 2;
+                }
+                else{
+                    PC_Cnt = 0;
+                }
                 break;
             case 2:
-                PC_buffer.PC_uint8[1] = UART1_Data;
-                PC_Cnt = 3;
+                if(UART1_Data == 0x80){
+                    PC_Cnt = 3;
+                }
+                else{
+                    PC_Cnt = 0;
+                }
                 break;
             case 3:
-                PC_buffer.PC_uint8[2] = UART1_Data;
-                PC_Cnt = 4;
+                if(UART1_Data == 0x7F){
+                    PC_Cnt = 4;
+                }
+                else{
+                    PC_Cnt = 0;
+                }
                 break;
             case 4:
-                PC_buffer.PC_uint8[3] = UART1_Data;
-                PC_Cnt = 5;
+                if(UART1_Data != 0x01){
+                    PC_Command = UART1_Data;
+                    PC_Cnt = 5;
+                }
+                else{
+                    PC_Cnt = 10;
+                }
                 break;
             case 5:
+                PC_buffer.PC_uint8[0] = UART1_Data;
+                PC_Cnt = 6;
+                break;
+            case 6:
+                PC_buffer.PC_uint8[1] = UART1_Data;
+                PC_Cnt = 7;
+                break;
+            case 7:
+                PC_buffer.PC_uint8[2] = UART1_Data;
+                PC_Cnt = 8;
+                break;
+            case 8:
+                PC_buffer.PC_uint8[3] = UART1_Data;
+                PC_Cnt = 9;
+                break;
+            case 9:
                 if(UART1_Data == 0xAA){
                     switch(PC_Command){
-                        case 0x01:
-                            CtrlCom.Spd_Target = PC_buffer.Pc_float;
-                            break;
                         case 0x02:
-                            SMO.h1 = PC_buffer.Pc_float;
+                            if(PC_buffer.Pc_float > 5){
+                                CtrlCom.Uq_Target = 5;
+                            }
+                            else if(PC_buffer.Pc_float < -5){
+                                CtrlCom.Uq_Target = -5;
+                            }
+                            else{
+                                CtrlCom.Uq_Target = PC_buffer.Pc_float;
+                            }
                             break;
                         case 0x03:
-                            SMO.h2 = PC_buffer.Pc_float;
+                            if(PC_buffer.Pc_float > 1){
+                                CtrlCom.Id_Target = 1;
+                            }
+                            else if(PC_buffer.Pc_float < -1){
+                                CtrlCom.Id_Target = -1;
+                            }
+                            else{
+                                CtrlCom.Id_Target = PC_buffer.Pc_float;
+                            }
                             break;
                         case 0x04:
-                            SMO.Switch_Spd = PC_buffer.Pc_float * PI * 2;
-                            SMO.Switch_EMF = SMO.Switch_Spd * MotorParameter.Np * MotorParameter.Flux;
+                            if(PC_buffer.Pc_float > 3000){
+                                CtrlCom.Spd_Target = (3000.0 / 60 * 2 * PI);
+                            }
+                            else if(PC_buffer.Pc_float < -3000){
+                                CtrlCom.Spd_Target = -(3000.0 / 60 * 2 * PI);
+                            }
+                            else{
+                                CtrlCom.Spd_Target = PC_buffer.Pc_float / 60 * 2 * PI;
+                            }
+                            break;
+                    }
+                }
+                PC_Command = 0;
+                PC_Cnt = 0;
+                break;
+            case 10:
+                PC_Command = UART1_Data;
+                PC_Cnt = 11;
+                break;
+            case 11:
+                if(UART1_Data == 0xAA){
+                    switch (PC_Command){
+                        case 0x00:
+                            CtrlCom.Mode = 0;
+                            break;
+                        case 0x01:
+                            CtrlCom.Mode = 1;
+                            break;
+                        case 0xFF:
+                            CtrlCom.Stop_Flag = 1;
                             break;
                     }
                 }

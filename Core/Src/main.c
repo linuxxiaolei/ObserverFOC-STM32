@@ -45,12 +45,13 @@
 const MotorParameter_str MotorParameter = {.Np = 5,
                                            .J = 0.0000033f,
                                            .Rs = 0.75f,
-                                           .Ls = 0.00095f,
-                                           .Kt = 0.10005f,
-                                           .Flux = 0.01334f};
+                                           .Ld = 0.00085f,
+                                           .Lq = 0.00105f,
+                                           .Kt = 0.11f,
+                                           .Flux = 0.014667f};
 
 Frame_union DataUpToPc = {.FrameData.tail = {0x00, 0x00, 0x80, 0x7f}};
-MotorRealTimeInformation_str MRT_Inf = {0};
+MotorRealTimeInformation_str MRT_Inf = {.Sector = 1};
 SensorData_str SensorData = {0};
 uint16_t ADC1_Buffer[3] = {0};
 uint16_t ADC2_Buffer = {0};
@@ -60,6 +61,7 @@ PI_str Q_PI  = {0};
 PI_str Spd_PI  = {0};
 ControlCommand_str CtrlCom = {0};
 SlidingModeObserver_str SMO = {0};
+HighFrequencyInjection_str HFI = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -910,39 +912,30 @@ void MotorParameter_Init(void){
     CtrlCom.CurTs = 1.0f / CtrlCom.CurFs;
     CtrlCom.SpdTs = 1.0f / CtrlCom.SpdFs;
     
-    CtrlCom.wc_Current = 2.0f * PI / 20 * CtrlCom.CurFs;
+    CtrlCom.Mode = 1;
     
-    Q_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
-    Q_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
-    
-    D_PI.Kp =  CtrlCom.wc_Current * MotorParameter.Ls;
-    D_PI.Ki =  CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs;
-    
+    SensorData.Encoder_Ready = 1;
+    SensorData.Theta_Ready = 1;
+
+    CtrlCom.wc_Current = 2.0f * PI * CtrlCom.CurFs / 20;
+
+    float wc_Current_temp;
+
+    arm_sqrt_f32(1 + (1.5f * CtrlCom.CurTs * CtrlCom.wc_Current) * (1.5f * CtrlCom.CurTs * CtrlCom.wc_Current), &wc_Current_temp);
+
+    D_PI.Ki = CtrlCom.wc_Current * MotorParameter.Ld * wc_Current_temp;
+    D_PI.Ki = CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs * wc_Current_temp;
+
+    Q_PI.Ki = CtrlCom.wc_Current * MotorParameter.Lq * wc_Current_temp;
+    Q_PI.Ki = CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs * wc_Current_temp;
+
     CtrlCom.wc_Speed = CtrlCom.wc_Current / 10;
-    
+
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
-    Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.SpdTs;
-    Spd_PI.Max = 0.5f;
-    
-    CtrlCom.Spd_Target = 0;
-    CtrlCom.Spd = 0;
-    
-    SMO.h1 = 60.0f;
-    SMO.h2 = 120.0f;
-    SMO.E1 = 2;
-    SMO.EMF_LPF_wc = 1500.0f * 2 * PI;
-    SMO.Theta_PLL_wn = 500.0f * 2 * PI;
-    SMO.Theta_PLL_we = 250.0f * 2 * PI;
-    SMO.Theta_PLL_zeta = 1.0f;
-    SMO.Spd_LPF_wc = 250.0f * 2 * PI;
-    SMO.Switch_Spd = PI * 2 * 4;
-    SMO.Switch_EMF = SMO.Switch_Spd * MotorParameter.Np * MotorParameter.Flux;
-    
-    SMO.SpdE_PI.Kp = 2.0f * SMO.Theta_PLL_zeta * SMO.Theta_PLL_wn;
-    SMO.SpdE_PI.Ki = SMO.Theta_PLL_wn * SMO.Theta_PLL_wn * CtrlCom.CurTs;
-    SMO.SpdE_PI.Max = PI * 2 * 100 * MotorParameter.Np;
+    Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.CurTs;
+    Spd_PI.Max = 1.0f;
 }
-/* USER CODE END 4 */ 
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
