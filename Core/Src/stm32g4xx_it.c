@@ -414,6 +414,9 @@ void TIM1_UP_TIM16_IRQHandler(void)
                 UART_Cnt = 0;
             }
             CtrlComFilter(&CtrlCom.Spd, CtrlCom.Spd_Target, 0.03f);
+            Spd_Timer(&(CtrlCom.Spd_Tick));
+            GetSpd(SensorData.Theta, &(SensorData.Theta_Pre), &MRT_Inf.Spd, CtrlCom.SpdFs, CtrlCom.Spd_Tick, &CtrlCom.Start_Flag);
+
             FOC_Mode_Select(&D_PI, &Q_PI, &Spd_PI, &SensorData, &CtrlCom, &MotorParameter, &MRT_Inf, &SMO, &HFI);
             
             TIM1->CCR1 = (uint32_t)(MRT_Inf.CCRa * Timer_PERIOD);
@@ -544,13 +547,16 @@ void USART1_IRQHandler(void)
                 if(UART1_Data == 0xAA){
                     switch (PC_Command){
                         case 0x00:
-                            CtrlCom.Mode = 0;
+                            CtrlCom.Mode = VolLoop;
+                            CtrlCom.Status_Flag = STOP;
                             break;
                         case 0x01:
-                            CtrlCom.Mode = 1;
+                            CtrlCom.Mode = CurLoop;
+                            CtrlCom.Status_Flag = STOP;
                             break;
-                        case 0xFF:
-                            CtrlCom.Stop_Flag = 1;
+                        case 0x02:
+                            CtrlCom.Mode = SpdLoop;
+                            CtrlCom.Status_Flag = STOP;
                             break;
                     }
                 }

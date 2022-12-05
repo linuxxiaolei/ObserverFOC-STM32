@@ -912,12 +912,10 @@ void MotorParameter_Init(void){
     CtrlCom.CurTs = 1.0f / CtrlCom.CurFs;
     CtrlCom.SpdTs = 1.0f / CtrlCom.SpdFs;
     
-    CtrlCom.Mode = 1;
-    
-    SensorData.Encoder_Ready = 1;
-    SensorData.Theta_Ready = 1;
+    CtrlCom.Mode = VolLoop;
+    CtrlCom.Status_Flag = START;
 
-    CtrlCom.wc_Current = 2.0f * PI * CtrlCom.CurFs / 20;
+    CtrlCom.wc_Current = 2.0f * PI * CtrlCom.CurFs / 25;
 
     float wc_Current_temp;
 
@@ -929,11 +927,14 @@ void MotorParameter_Init(void){
     Q_PI.Ki = CtrlCom.wc_Current * MotorParameter.Lq * wc_Current_temp;
     Q_PI.Ki = CtrlCom.wc_Current * MotorParameter.Rs * CtrlCom.CurTs * wc_Current_temp;
 
-    CtrlCom.wc_Speed = CtrlCom.wc_Current / 10;
+    CtrlCom.wc_Speed = 2.0f * PI * CtrlCom.SpdFs / 10;
 
     Spd_PI.Kp = MotorParameter.J / MotorParameter.Kt * CtrlCom.wc_Speed;
     Spd_PI.Ki = Spd_PI.Kp * CtrlCom.wc_Speed / 10 * CtrlCom.CurTs;
     Spd_PI.Max = 1.0f;
+
+    HFI.Dir = 1;
+    HFI.Vh = 10;
 }
 /* USER CODE END 4 */
 

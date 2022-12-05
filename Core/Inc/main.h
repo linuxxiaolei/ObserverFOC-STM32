@@ -56,6 +56,20 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef enum{
+    START = 0,
+    RUN,
+    STOP
+}ModeChange_Status_enum;
+
+typedef enum{
+    VolLoop = 0,
+    CurLoop,
+    SpdLoop,
+    HFI_Sensorless,
+    HFISMO_Sensorless
+}ControlMode_enum;
+
 typedef struct{
     float Kp;
     float Ki;
@@ -69,7 +83,8 @@ typedef struct{
 typedef struct{
     int8_t Spd_Tick;
     int8_t Start_Flag;
-    int8_t Stop_Flag;
+    ModeChange_Status_enum Status_Flag;
+    int16_t Stop_cnt;
     
     float Spd;
     float Spd_Target;
@@ -87,7 +102,8 @@ typedef struct{
     float Ud;
     float Uq;
 
-    uint8_t Mode;
+    ControlMode_enum Mode;
+    ControlMode_enum Mode_last;
     
     float wc_Current;
     float wc_Speed;
@@ -252,18 +268,19 @@ typedef struct{
 }HFI_Rec_str;
 
 typedef enum{
+    HFI_WORK = 0,
+    HFI_SMO_MIX,
+    SMO_WORK
+}HFIRun_Status_enum;
+
+typedef enum{
     IH_INIT = 0,
-    IH_WAIT,
     THETAE_INIT,
-    THETAE_WAIT,
     POLE_INIT,
     POLE_N_WAIT,
     POLE_S_WAIT,
-    HFI_WORK,
-    HFI_SMO_MIX,
-    SMO_WORK,
     HFI_WAIT
-}HFI_Status_enum;
+}HFIStart_Status_enum;
 
 typedef struct{
     float Theta;
@@ -310,8 +327,8 @@ typedef struct{
     HFI_Rec_str Rec;
     float ThetaE_Rec;
     float ThetaE_Rec_temp;
-    HFI_Status_enum status;
-    HFI_Status_enum status_temp;
+    HFIStart_Status_enum Start_Status;
+    HFIRun_Status_enum Run_Status;
     int32_t status_cnt;
     float SpdE_Rec;
     float Spd_Rec;
